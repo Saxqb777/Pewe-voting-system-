@@ -34,8 +34,18 @@ export type Settings = {
    */
   schedule: "none" | "before" | "during" | "after";
 
-  /** The admin's manual open switch, ignoring the clock. */
-  manuallyOpen: boolean;
+  /** True once the admin has pressed Start, or a start time has arrived. */
+  hasStarted: boolean;
+  /** When it began, if it has. */
+  startedAt: Date | null;
+
+  /**
+   * True once the election is over: the admin closed it, or the closing time
+   * has passed. Not the same as votingOpen being false, which is also true
+   * before a scheduled start. Results follow this, never votingOpen, so a
+   * vote that has not begun cannot show a result.
+   */
+  votingEnded: boolean;
 };
 
 export async function getSettings(): Promise<Settings> {
@@ -50,10 +60,11 @@ export async function getSettings(): Promise<Settings> {
       test_selections: number | null;
       opens_at: Date | null;
       closes_at: Date | null;
+      started_at: Date | null;
     }[]
   >`
     SELECT mode, voting_open, closed_at, election_day,
-           test_voter_count, test_selections, opens_at, closes_at
+           test_voter_count, test_selections, opens_at, closes_at, started_at
     FROM settings WHERE id = 1
   `;
   const row = rows[0];
@@ -74,7 +85,9 @@ export async function getSettings(): Promise<Settings> {
       opensAt: null,
       closesAt: null,
       schedule: "none",
-      manuallyOpen: true,
+      hasStarted: false,
+      startedAt: null,
+      votingEnded: false,
     };
   }
 
@@ -95,10 +108,20 @@ export async function getSettings(): Promise<Settings> {
     else schedule = "during";
   }
 
+  // Three states, not two. An election that has not begun is not the same as
+  // one that is over, and neither is the same as one that is running.
+  const hasStarted =
+    row.started_at !== null || (opensAt !== null && now >= opensAt.getTime());
+
+  const votingEnded =
+    hasStarted && (row.closed_at !== null || schedule === "after");
+
   return {
     mode: row.mode,
-    votingOpen: row.voting_open && schedule !== "before" && schedule !== "after",
-    manuallyOpen: row.voting_open,
+    votingOpen: hasStarted && !votingEnded,
+    votingEnded,
+    hasStarted,
+    startedAt: row.started_at,
     opensAt,
     closesAt,
     schedule,

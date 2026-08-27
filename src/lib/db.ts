@@ -177,6 +177,9 @@ CREATE TABLE IF NOT EXISTS settings (
   -- wherever the admin or a voter happens to be.
   opens_at      TIMESTAMPTZ,
   closes_at     TIMESTAMPTZ,
+  -- When the admin pressed Start. Null means the election has not begun, which
+  -- is a different state from open and from finished.
+  started_at    TIMESTAMPTZ,
   CONSTRAINT settings_single_row CHECK (id = 1),
   CONSTRAINT settings_mode_valid CHECK (mode IN ('test', 'live'))
 );
@@ -185,6 +188,10 @@ ALTER TABLE settings ADD COLUMN IF NOT EXISTS test_voter_count INTEGER;
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS test_selections INTEGER;
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS opens_at TIMESTAMPTZ;
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS closes_at TIMESTAMPTZ;
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ;
+-- Anything already running before there was a Start button counts as started.
+UPDATE settings SET started_at = NOW()
+  WHERE started_at IS NULL AND voting_open AND id = 1;
 
 INSERT INTO settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
 
@@ -251,7 +258,7 @@ async function createSchema(): Promise<void> {
         SELECT 1 FROM information_schema.columns
         WHERE table_schema = 'public'
           AND table_name = 'settings'
-          AND column_name = 'closes_at'
+          AND column_name = 'started_at'
       ) AS ready
   `;
   if (ready?.ready) return;

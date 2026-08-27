@@ -1,14 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
-import Link from "next/link";
 import type { Dashboard as DashboardData } from "@/lib/admin-data";
 import { strings } from "@/lib/strings";
+import { describeMoment } from "@/lib/countdown";
 import { RESET_PHRASE, LIVE_OVERRIDE_PHRASE } from "@/lib/phrases";
 import {
   adminSignOut,
-  closeVoting,
-  reopenVoting,
   loadDummyVoters,
   loadRoster,
   loadRosterFromNames,
@@ -25,6 +23,8 @@ import {
   type ActionResult,
 } from "@/actions/admin";
 import { Button, Notice, Section } from "./ui";
+import { ElectionStatus } from "./ElectionStatus";
+import { NextSteps } from "./NextSteps";
 
 const POLL_MS = 10000;
 
@@ -92,12 +92,13 @@ export function Dashboard({ initial }: { initial: DashboardData }) {
         </Notice>
       ) : null}
 
+      <ElectionStatus data={data} />
+      <NextSteps data={data} run={run} pending={pending} />
       <TurnoutPanel data={data} />
-      <ClosePanel data={data} run={run} pending={pending} />
-      <SchedulePanel data={data} run={run} pending={pending} />
       <PendingPanel voters={pendingVoters} total={data.turnout.total} />
       <VoterToolsPanel data={data} run={run} pending={pending} />
       <FlagsPanel data={data} run={run} pending={pending} />
+      <SchedulePanel data={data} run={run} pending={pending} />
       {data.mode === "test" ? (
         <PracticePanel data={data} run={run} pending={pending} />
       ) : null}
@@ -136,61 +137,6 @@ function TurnoutPanel({ data }: { data: DashboardData }) {
   );
 }
 
-function ClosePanel({
-  data,
-  run,
-  pending,
-}: {
-  data: DashboardData;
-  run: RunFn;
-  pending: boolean;
-}) {
-  return (
-    <Section title={strings.admin.closeVotingHeading}>
-      {data.votingOpen ? (
-        <>
-          <Notice tone="warn">{strings.admin.resultsHidden}</Notice>
-          <p className="mt-2 text-sm text-ink-soft">
-            {strings.admin.resultsHiddenNote}
-          </p>
-          <div className="mt-4">
-            <Button
-              tone="danger"
-              disabled={pending}
-              onClick={() => {
-                if (window.confirm(strings.admin.closeVotingConfirm)) {
-                  run(closeVoting);
-                }
-              }}
-            >
-              {strings.admin.closeVoting}
-            </Button>
-          </div>
-        </>
-      ) : (
-        <>
-          <Notice tone="good">
-            {strings.admin.votingClosedAt(
-              data.closedAt ? new Date(data.closedAt).toLocaleString() : "",
-            )}
-          </Notice>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/admin/results"
-              className="inline-flex min-h-12 items-center rounded-xl bg-brand px-4 py-2 text-base font-semibold text-white"
-            >
-              {strings.admin.viewResults}
-            </Link>
-            <Button disabled={pending} onClick={() => run(reopenVoting)}>
-              {strings.admin.reopenVoting}
-            </Button>
-          </div>
-        </>
-      )}
-    </Section>
-  );
-}
-
 /** Turns an exact moment into the value a datetime-local box expects. */
 function toLocalInput(iso: string | null): string {
   if (!iso) return "";
@@ -205,17 +151,6 @@ function toIso(local: string): string | null {
   if (!local) return null;
   const d = new Date(local);
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
-}
-
-function longTime(iso: string | null): string {
-  if (!iso) return "";
-  return new Date(iso).toLocaleString(undefined, {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    hour: "numeric",
-    minute: "2-digit",
-  });
 }
 
 function SchedulePanel({
@@ -239,13 +174,13 @@ function SchedulePanel({
 
   const state =
     data.schedule === "before"
-      ? strings.admin.scheduleBefore(longTime(data.opensAt))
+      ? strings.admin.scheduleBefore(describeMoment(data.opensAt))
       : data.schedule === "during"
         ? data.closesAt
-          ? strings.admin.scheduleDuring(longTime(data.closesAt))
+          ? strings.admin.scheduleDuring(describeMoment(data.closesAt))
           : strings.admin.scheduleDuringNoEnd
         : data.schedule === "after"
-          ? strings.admin.scheduleAfter(longTime(data.closesAt))
+          ? strings.admin.scheduleAfter(describeMoment(data.closesAt))
           : strings.admin.scheduleNone;
 
   return (

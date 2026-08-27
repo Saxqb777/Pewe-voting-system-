@@ -189,7 +189,7 @@ export type Results = {
 
 export class VotingStillOpenError extends Error {
   constructor() {
-    super("Results are not available until voting is closed.");
+    super("Results are not available until voting has finished.");
   }
 }
 
@@ -200,7 +200,9 @@ export class VotingStillOpenError extends Error {
 export async function getResults(): Promise<Results> {
   await ensureSchema();
   const settings = await getSettings();
-  if (settings.votingOpen) throw new VotingStillOpenError();
+  // Gated on the election being over, not merely not open. Before a scheduled
+  // start neither is true, and a vote that has not begun has no result.
+  if (!settings.votingEnded) throw new VotingStillOpenError();
 
   const seats = settings.selectionsRequired;
 
@@ -278,7 +280,7 @@ export async function getResults(): Promise<Results> {
 export async function getAnonymousBallots(): Promise<number[][]> {
   await ensureSchema();
   const settings = await getSettings();
-  if (settings.votingOpen) throw new VotingStillOpenError();
+  if (!settings.votingEnded) throw new VotingStillOpenError();
   const rows = await sql<{ choices: number[] }[]>`
     SELECT choices FROM ballots ORDER BY random()
   `;
@@ -314,6 +316,10 @@ export type Dashboard = {
   opensAt: string | null;
   closesAt: string | null;
   schedule: "none" | "before" | "during" | "after";
+  /** True once the election is over and results may be read. */
+  votingEnded: boolean;
+  /** True once voting has begun. */
+  hasStarted: boolean;
   votingOpen: boolean;
   closedAt: string | null;
   turnout: Turnout;
@@ -364,6 +370,8 @@ export async function getDashboard(): Promise<Dashboard> {
     opensAt: settings.opensAt ? settings.opensAt.toISOString() : null,
     closesAt: settings.closesAt ? settings.closesAt.toISOString() : null,
     schedule: settings.schedule,
+    votingEnded: settings.votingEnded,
+    hasStarted: settings.hasStarted,
     votingOpen: settings.votingOpen,
     closedAt: settings.closedAt ? settings.closedAt.toISOString() : null,
     turnout,

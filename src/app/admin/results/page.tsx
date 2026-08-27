@@ -14,7 +14,7 @@ export default async function ResultsPage() {
   const settings = await getSettings();
   // Second gate. getResults refuses as well, so there is no path to a
   // partial count even if this check were ever removed.
-  if (settings.votingOpen) redirect("/admin");
+  if (!settings.votingEnded) redirect("/admin");
 
   const results = await getResults();
   const mismatch = results.totalBallots !== results.totalMarkedVoted;

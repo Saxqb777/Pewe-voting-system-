@@ -182,6 +182,31 @@ export async function clearVotingWindow(): Promise<ActionResult> {
   return { ok: true, message: "Voting times removed." };
 }
 
+/** Opens the ballot. Nothing can be cast until this happens. */
+export async function startVoting(): Promise<ActionResult> {
+  if (!(await requireAdmin())) return DENIED;
+  await ensureSchema();
+
+  const [{ count: voters }] = await sql<{ count: number }[]>`
+    SELECT COUNT(*)::int AS count FROM voters
+  `;
+  if (voters === 0) {
+    return {
+      ok: false,
+      message: "Load your voter list first. There is nobody to vote yet.",
+    };
+  }
+
+  await sql`
+    UPDATE settings SET started_at = NOW(), closed_at = NULL, voting_open = TRUE
+    WHERE id = 1
+  `;
+  await audit("start_voting", `${voters} voters on the register`);
+  revalidatePath("/admin");
+  revalidatePath("/");
+  return { ok: true, message: "Voting is open. Share the link." };
+}
+
 export async function closeVoting(): Promise<ActionResult> {
   if (!(await requireAdmin())) return DENIED;
   await sql`
@@ -199,6 +224,7 @@ export async function reopenVoting(): Promise<ActionResult> {
   // moment it opened, so reopening by hand clears it.
   await sql`
     UPDATE settings SET voting_open = TRUE, closed_at = NULL,
+      started_at = COALESCE(started_at, NOW()),
       closes_at = CASE WHEN closes_at <= NOW() THEN NULL ELSE closes_at END,
       opens_at = CASE WHEN opens_at > NOW() THEN NULL ELSE opens_at END
     WHERE id = 1
@@ -239,6 +265,11 @@ async function writeRoster(
     }
   });
 
+  // A new register is a new election, so it goes back to not started.
+  await sql`
+    UPDATE settings SET started_at = NULL, closed_at = NULL, voting_open = TRUE
+    WHERE id = 1
+  `;
   await audit("load_roster", `${rows.length} voters loaded, ${how}`);
   revalidatePath("/admin");
   revalidatePath("/");
@@ -439,7 +470,7 @@ export async function resetForLive(
       UPDATE settings SET mode = 'live', voting_open = TRUE,
         closed_at = NULL, election_day = CURRENT_DATE,
         test_voter_count = NULL, test_selections = NULL,
-        opens_at = NULL, closes_at = NULL
+        opens_at = NULL, closes_at = NULL, started_at = NULL
       WHERE id = 1
     `;
   });
