@@ -12,8 +12,40 @@ const globalForDb = globalThis as unknown as {
   __schemaReady?: Promise<void>;
 };
 
+/**
+ * Query parameters that belong to the libpq command line client, not to the
+ * Postgres server. This driver forwards anything it does not recognise to the
+ * server as a startup parameter, and the server then refuses the connection
+ * with "unrecognized configuration parameter". Neon now puts
+ * channel_binding=require on the strings it hands out, so strip these rather
+ * than ask anyone to edit a connection string by hand.
+ */
+const CLIENT_ONLY_PARAMS = [
+  "channel_binding",
+  "gssencmode",
+  "target_session_attrs",
+  "sslrootcert",
+  "sslcert",
+  "sslkey",
+  "sslnegotiation",
+  "passfile",
+  "service",
+];
+
+export function sanitiseDatabaseUrl(raw: string): string {
+  let url: URL;
+  try {
+    url = new URL(raw.trim());
+  } catch {
+    // Not a URL we can parse. Hand it over untouched and let the driver speak.
+    return raw.trim();
+  }
+  for (const param of CLIENT_ONLY_PARAMS) url.searchParams.delete(param);
+  return url.toString();
+}
+
 function connect(): postgres.Sql {
-  return postgres(config.databaseUrl, {
+  return postgres(sanitiseDatabaseUrl(config.databaseUrl), {
     max: 3,
     idle_timeout: 20,
     connect_timeout: 15,
