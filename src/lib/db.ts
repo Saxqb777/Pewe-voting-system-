@@ -1,6 +1,7 @@
 import "server-only";
 import postgres from "postgres";
 import { config } from "./config";
+import { normaliseConnectionString } from "./connection-string";
 
 /**
  * One connection pool per process. Kept on globalThis so that hot reload in
@@ -34,11 +35,12 @@ const CLIENT_ONLY_PARAMS = [
 
 export function sanitiseDatabaseUrl(raw: string): string {
   let url: URL;
+  const cleaned = normaliseConnectionString(raw);
   try {
-    url = new URL(raw.trim());
+    url = new URL(cleaned);
   } catch {
-    // Not a URL we can parse. Hand it over untouched and let the driver speak.
-    return raw.trim();
+    // Not a URL we can parse. Hand it over and let the driver say why.
+    return cleaned;
   }
   for (const param of CLIENT_ONLY_PARAMS) url.searchParams.delete(param);
   return url.toString();

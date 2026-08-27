@@ -11,7 +11,8 @@
     "verify:anonymity": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/verify-anonymity.ts",
     "test:ballot-box": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/test-ballot-box.mts",
     "test:roster": "tsx --conditions=react-server scripts/test-roster.mts",
-    "test": "npm run test:roster && npm run test:ballot-box && npm run verify:anonymity"
+    "test": "npm run test:roster && npm run test:connection-string && npm run test:ballot-box && npm run verify:anonymity",
+    "test:connection-string": "tsx --conditions=react-server scripts/test-connection-string.mts"
   },
   "dependencies": {
     "next": "16.3.3",

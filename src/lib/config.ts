@@ -1,3 +1,5 @@
+import { normaliseConnectionString } from "./connection-string";
+
 /**
  * Central place for every environment backed setting.
  * Nothing else in the app reads process.env directly.
@@ -88,16 +90,17 @@ export type ConfigProblem = { variable: string; problem: string };
 export function checkConfig(): ConfigProblem[] {
   const problems: ConfigProblem[] = [];
 
-  const databaseUrl = process.env.DATABASE_URL ?? "";
-  if (databaseUrl.trim() === "") {
+  const databaseUrl = normaliseConnectionString(process.env.DATABASE_URL ?? "");
+  if (databaseUrl === "") {
     problems.push({
       variable: "DATABASE_URL",
       problem: "Not set. Paste the connection string from your database.",
     });
-  } else if (!/^postgres(ql)?:\/\//.test(databaseUrl.trim())) {
+  } else if (!/^postgres(ql)?:\/\//.test(databaseUrl)) {
     problems.push({
       variable: "DATABASE_URL",
-      problem: "Does not look like a connection string. It should start with postgresql://",
+      problem:
+        "Does not look like a connection string. It must contain postgresql:// followed by the rest of the string from Neon. Check nothing was cut off when it was copied.",
     });
   }
 
