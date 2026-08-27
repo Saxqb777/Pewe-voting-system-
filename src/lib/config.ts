@@ -64,3 +64,82 @@ export const SHARED_IP_FLAG_THRESHOLD = 3;
 export const VOTER_FAILED_ATTEMPT_FLAG_THRESHOLD = 3;
 
 export { RESET_PHRASE, LIVE_OVERRIDE_PHRASE } from "./phrases";
+
+// --------------------------------------------------------------------------
+// Setup checks
+// --------------------------------------------------------------------------
+
+/** Shortest admin password that is not an invitation. */
+export const MIN_ADMIN_PASSWORD_LENGTH = 12;
+
+/** Shortest signing secret. Anyone holding it can forge an admin session. */
+export const MIN_SESSION_SECRET_LENGTH = 32;
+
+export type ConfigProblem = { variable: string; problem: string };
+
+/**
+ * Looks over the environment and reports anything that would make the
+ * election unsafe or simply not work. Reported in plain language on the admin
+ * screen, so a missing setting never shows up as a blank page.
+ *
+ * It reports the name of the setting and what is wrong with it. It never
+ * reports the value.
+ */
+export function checkConfig(): ConfigProblem[] {
+  const problems: ConfigProblem[] = [];
+
+  const databaseUrl = process.env.DATABASE_URL ?? "";
+  if (databaseUrl.trim() === "") {
+    problems.push({
+      variable: "DATABASE_URL",
+      problem: "Not set. Paste the connection string from your database.",
+    });
+  } else if (!/^postgres(ql)?:\/\//.test(databaseUrl.trim())) {
+    problems.push({
+      variable: "DATABASE_URL",
+      problem: "Does not look like a connection string. It should start with postgresql://",
+    });
+  }
+
+  const adminPassword = process.env.ADMIN_PASSWORD ?? "";
+  if (adminPassword.trim() === "") {
+    problems.push({
+      variable: "ADMIN_PASSWORD",
+      problem: "Not set. Choose a password only you know.",
+    });
+  } else if (adminPassword.length < MIN_ADMIN_PASSWORD_LENGTH) {
+    problems.push({
+      variable: "ADMIN_PASSWORD",
+      problem: `Too short. Use at least ${MIN_ADMIN_PASSWORD_LENGTH} characters. Anyone who guesses this can close the election.`,
+    });
+  }
+
+  const sessionSecret = process.env.SESSION_SECRET ?? "";
+  if (sessionSecret.trim() === "") {
+    problems.push({
+      variable: "SESSION_SECRET",
+      problem: "Not set. Type a long line of random letters and numbers.",
+    });
+  } else if (sessionSecret.length < MIN_SESSION_SECRET_LENGTH) {
+    problems.push({
+      variable: "SESSION_SECRET",
+      problem: `Too short. Use at least ${MIN_SESSION_SECRET_LENGTH} characters. Anyone who works this out can sign in as admin without the password.`,
+    });
+  } else if (/^(.)\1+$/.test(sessionSecret)) {
+    problems.push({
+      variable: "SESSION_SECRET",
+      problem: "The same character repeated is not random. Mix letters and numbers.",
+    });
+  }
+
+  const voters = Number.parseInt(process.env.EXPECTED_VOTER_COUNT ?? "130", 10);
+  const picks = Number.parseInt(process.env.SELECTIONS_REQUIRED ?? "16", 10);
+  if (Number.isFinite(voters) && Number.isFinite(picks) && picks >= voters) {
+    problems.push({
+      variable: "SELECTIONS_REQUIRED",
+      problem: `Each voter would have to pick ${picks} names out of ${voters}. It must be fewer than the number of voters.`,
+    });
+  }
+
+  return problems;
+}

@@ -87,6 +87,15 @@ export const strings = {
     lead: "Thank you. No more votes can be accepted.",
   },
 
+  setup: {
+    title: "Setup not finished",
+    lead: "The app is running, but these settings need fixing before the election can be used. Change them where you host the app, then reload this page.",
+    settingLabel: "Setting",
+    problemLabel: "What is wrong",
+    reload: "Reload",
+    safe: "Nothing has been lost. No voter can reach the ballot until this is fixed.",
+  },
+
   admin: {
     title: "Admin",
     passwordLabel: "Admin password",

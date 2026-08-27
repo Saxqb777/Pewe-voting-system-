@@ -1,5 +1,7 @@
 "use server";
 
+import { redirect } from "next/navigation";
+import { strings } from "@/lib/strings";
 import { sql, ensureSchema } from "@/lib/db";
 import { castBallot } from "@/lib/ballot-box";
 import { getSettings } from "@/lib/settings";
@@ -91,6 +93,40 @@ export async function verifyVoterId(
   `;
 
   return { status: "ok" };
+}
+
+export type VerifyState = { error: string | null };
+
+/**
+ * Form version of the check above, used with a plain HTML form so that the
+ * first screen works even before the page's JavaScript has loaded. On a weak
+ * signal that can be many seconds, and a voter tapping a dead button would
+ * simply give up.
+ *
+ * On success it redirects from the server, so no JavaScript is needed for
+ * that either.
+ */
+export async function verifyVoterIdForm(
+  _previous: VerifyState,
+  formData: FormData,
+): Promise<VerifyState> {
+  const rawId = String(formData.get("voterId") ?? "");
+  const fingerprint = String(formData.get("fingerprint") ?? "");
+
+  const result = await verifyVoterId(rawId, fingerprint);
+
+  switch (result.status) {
+    case "ok":
+      redirect("/vote");
+    case "locked":
+      return { error: strings.entry.locked };
+    case "closed":
+      return { error: strings.entry.closed };
+    case "not_ready":
+      return { error: strings.entry.notReady };
+    default:
+      return { error: strings.entry.generic };
+  }
 }
 
 async function fail(

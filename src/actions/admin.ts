@@ -53,6 +53,20 @@ export async function adminSignIn(password: string): Promise<ActionResult> {
   return { ok: true };
 }
 
+export type AdminSignInState = { error: string | null };
+
+/**
+ * Form version of signing in, so the admin screen works before its
+ * JavaScript has loaded, the same as the voter screen.
+ */
+export async function adminSignInForm(
+  _previous: AdminSignInState,
+  formData: FormData,
+): Promise<AdminSignInState> {
+  const result = await adminSignIn(String(formData.get("password") ?? ""));
+  return { error: result.ok ? null : result.message };
+}
+
 export async function adminSignOut(): Promise<ActionResult> {
   await clearAdminSession();
   revalidatePath("/admin");
