@@ -148,6 +148,19 @@ function group<T>(rows: T[], key: (row: T) => string): [string, T[]][] {
   return [...map.entries()];
 }
 
+export type CountryCount = { country: string | null; count: number };
+
+/** How many people voted from each country. Read from the register only. */
+export async function getCountryCounts(): Promise<CountryCount[]> {
+  await ensureSchema();
+  return sql<CountryCount[]>`
+    SELECT country, COUNT(*)::int AS count
+    FROM voters WHERE has_voted
+    GROUP BY country
+    ORDER BY COUNT(*) DESC, country NULLS LAST
+  `;
+}
+
 export type AuditEntry = { action: string; detail: string; at: Date };
 
 export async function getAudit(limit = 60): Promise<AuditEntry[]> {
@@ -332,6 +345,7 @@ export type Dashboard = {
     lockedSessions: { sessionId: string; ip: string | null; lockedAt: string }[];
   };
   audit: { action: string; detail: string; at: string }[];
+  countries: CountryCount[];
 };
 
 export async function getDashboard(): Promise<Dashboard> {
@@ -352,13 +366,15 @@ export async function getDashboard(): Promise<Dashboard> {
     FROM voters ORDER BY name
   `;
 
-  const [settings, turnout, flags, auditRows, voterRows] = await Promise.all([
-    getSettings(),
-    getTurnout(),
-    getFlags(),
-    getAudit(40),
-    voterQuery,
-  ]);
+  const [settings, turnout, flags, auditRows, voterRows, countries] =
+    await Promise.all([
+      getSettings(),
+      getTurnout(),
+      getFlags(),
+      getAudit(40),
+      voterQuery,
+      getCountryCounts(),
+    ]);
 
   return {
     mode: settings.mode,
@@ -395,6 +411,7 @@ export async function getDashboard(): Promise<Dashboard> {
         lockedAt: s.lockedAt.toISOString(),
       })),
     },
+    countries,
     audit: auditRows.map((a) => ({
       action: a.action,
       detail: a.detail,

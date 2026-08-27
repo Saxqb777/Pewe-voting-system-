@@ -5,6 +5,11 @@ import { useFormStatus } from "react-dom";
 import { verifyVoterIdForm, type VerifyState } from "@/actions/voter";
 import { deviceFingerprint } from "@/lib/fingerprint";
 import { strings } from "@/lib/strings";
+import {
+  COMMON_COUNTRIES,
+  OTHER_COUNTRIES,
+  OTHER_LABEL,
+} from "@/lib/countries";
 
 const EMPTY: VerifyState = { error: null };
 
@@ -45,6 +50,43 @@ export function EntryForm({ numericIds }: { numericIds: boolean }) {
         className="w-full rounded-xl border-2 border-line bg-card px-4 py-4 text-center text-2xl font-semibold tracking-widest text-ink placeholder:text-sm placeholder:font-normal placeholder:tracking-normal placeholder:text-ink-soft focus:border-brand"
       />
       <input type="hidden" name="fingerprint" value={fingerprint} />
+
+      <label
+        htmlFor="country"
+        className="mb-2 mt-6 block text-base font-semibold text-ink"
+      >
+        {strings.entry.countryLabel}
+      </label>
+      <select
+        id="country"
+        name="country"
+        required
+        defaultValue=""
+        aria-describedby="countryHelp"
+        className="w-full rounded-xl border-2 border-line bg-card px-4 py-4 text-lg text-ink focus:border-brand"
+      >
+        <option value="" disabled>
+          {strings.entry.countryPlaceholder}
+        </option>
+        <optgroup label={strings.entry.countryCommon}>
+          {COMMON_COUNTRIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </optgroup>
+        <optgroup label={strings.entry.countryOther}>
+          {OTHER_COUNTRIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+          <option value={OTHER_LABEL}>{OTHER_LABEL}</option>
+        </optgroup>
+      </select>
+      <p id="countryHelp" className="mt-2 text-sm text-ink-soft">
+        {strings.entry.countryHelp}
+      </p>
 
       {state.error ? (
         <p

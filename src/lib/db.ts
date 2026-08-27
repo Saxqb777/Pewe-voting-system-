@@ -140,10 +140,18 @@ CREATE TABLE IF NOT EXISTS voters (
   -- Random id of the browser session that cast this voter's ballot. Used
   -- only to make a double tap idempotent. It is not stored anywhere in the
   -- ballots table, so it links nothing.
-  vote_claim          TEXT
+  vote_claim          TEXT,
+  -- Where this voter said they were voting from.
+  --
+  -- Deliberately on the register and never on a ballot. On a ballot it would
+  -- be a property of the vote, and a country with only one or two voters
+  -- would single those ballots out. Here it sits beside has_voted, which
+  -- already says exactly who voted, so it reveals nothing new.
+  country             TEXT
 );
 
 ALTER TABLE voters ADD COLUMN IF NOT EXISTS vote_claim TEXT;
+ALTER TABLE voters ADD COLUMN IF NOT EXISTS country TEXT;
 
 -- Table: ballots. The ballot box. What was chosen. Never contains anything
 -- that identifies a person, a device, a network address or a precise moment
@@ -246,7 +254,7 @@ async function createSchema(): Promise<void> {
         SELECT 1 FROM information_schema.columns
         WHERE table_schema = 'public'
           AND table_name = 'voters'
-          AND column_name = 'vote_claim'
+          AND column_name = 'country'
       )
       AND EXISTS (
         SELECT 1 FROM information_schema.columns

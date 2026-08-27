@@ -97,6 +97,7 @@ export function Dashboard({ initial }: { initial: DashboardData }) {
       <TurnoutPanel data={data} />
       <PendingPanel voters={pendingVoters} total={data.turnout.total} />
       <VoterToolsPanel data={data} run={run} pending={pending} />
+      <CountriesPanel data={data} />
       <FlagsPanel data={data} run={run} pending={pending} />
       <SchedulePanel data={data} run={run} pending={pending} />
       {data.mode === "test" ? (
@@ -393,6 +394,48 @@ function VoterToolsPanel({
           </li>
         ))}
       </ul>
+    </Section>
+  );
+}
+
+function CountriesPanel({ data }: { data: DashboardData }) {
+  const rows = data.countries;
+  const total = rows.reduce((sum, r) => sum + r.count, 0);
+
+  return (
+    <Section title={strings.admin.countriesHeading}>
+      {rows.length === 0 ? (
+        <p className="text-base text-ink-soft">
+          {strings.admin.countriesEmpty}
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {rows.map((row) => {
+            const share = total > 0 ? Math.round((row.count / total) * 100) : 0;
+            return (
+              <li key={row.country ?? "unknown"}>
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-base font-medium text-ink">
+                    {row.country ?? strings.admin.countriesUnknown}
+                  </span>
+                  <span className="text-base font-bold tabular-nums text-ink">
+                    {row.count}
+                  </span>
+                </div>
+                <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-paper">
+                  <div
+                    className="h-full rounded-full bg-brand"
+                    style={{ width: `${share}%` }}
+                  />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <p className="mt-3 text-sm text-ink-soft">
+        {strings.admin.countriesNote}
+      </p>
     </Section>
   );
 }

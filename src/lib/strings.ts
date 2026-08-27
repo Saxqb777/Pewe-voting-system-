@@ -29,6 +29,12 @@ export const strings = {
     title: "Village Election",
     subtitle: "Enter your Voter ID to begin",
     label: "Voter ID",
+    countryLabel: "Where are you voting from?",
+    countryPlaceholder: "Choose a country",
+    countryCommon: "Most common",
+    countryOther: "Everywhere else",
+    countryHelp:
+      "This is counted by country only. It is never attached to your choices.",
     placeholder: "Your Voter ID",
     submit: "Continue",
     checking: "Checking",
@@ -157,6 +163,12 @@ export const strings = {
     pendingEmpty: "Everyone has voted.",
     copyPending: "Copy this list",
     copied: "Copied",
+
+    countriesHeading: "Where people voted from",
+    countriesEmpty: "Nobody has voted yet.",
+    countriesNote:
+      "Counted from the register, which already knows who has voted. It is never stored with anybody's choices.",
+    countriesUnknown: "Not said",
 
     flagsHeading: "Flags",
     flagsNote:
