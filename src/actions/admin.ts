@@ -204,11 +204,8 @@ export async function loadRoster(csvText: string): Promise<ActionResult> {
   const blocked = await rosterIsEditable();
   if (blocked) return blocked;
 
-  const parsed = parseRoster(
-    csvText ?? "",
-    config.expectedVoterCount,
-    normaliseVoterId,
-  );
+  const { expectedVoterCount } = await getSettings();
+  const parsed = parseRoster(csvText ?? "", expectedVoterCount, normaliseVoterId);
   if (!parsed.ok) return { ok: false, message: parsed.error };
 
   return writeRoster(parsed.rows, "IDs supplied by the admin");
@@ -230,7 +227,8 @@ export async function loadRosterFromNames(
   const blocked = await rosterIsEditable();
   if (blocked) return blocked;
 
-  const parsed = parseNameList(namesText ?? "", config.expectedVoterCount);
+  const { expectedVoterCount } = await getSettings();
+  const parsed = parseNameList(namesText ?? "", expectedVoterCount);
   if (!parsed.ok) return { ok: false, message: parsed.error };
 
   const ids = generateVoterIds(parsed.names.length);
@@ -247,6 +245,87 @@ export async function loadRosterFromNames(
   };
 }
 
+/**
+ * Shrinks the election to a practice size and fills it with made up people.
+ *
+ * Only allowed in test mode. A real vote never reads these numbers, and the
+ * reset that switches the election live wipes them, so there is no path by
+ * which a practice size reaches the actual election.
+ */
+export async function setPracticeSize(
+  voters: number,
+  selections: number,
+): Promise<ActionResult> {
+  if (!(await requireAdmin())) return DENIED;
+  await ensureSchema();
+
+  const settings = await getSettings();
+  if (settings.mode !== "test") {
+    return {
+      ok: false,
+      message: "A practice size can only be set in test mode.",
+    };
+  }
+
+  const blocked = await rosterIsEditable();
+  if (blocked) return blocked;
+
+  const people = Math.trunc(Number(voters));
+  const picks = Math.trunc(Number(selections));
+
+  if (!Number.isFinite(people) || people < 3) {
+    return { ok: false, message: "Use at least 3 people for a practice." };
+  }
+  if (!Number.isFinite(picks) || picks < 1) {
+    return { ok: false, message: "Each voter must choose at least 1 name." };
+  }
+  if (picks >= people) {
+    return {
+      ok: false,
+      message: `Each voter has to choose ${picks} names out of ${people}. Choose fewer names than there are people.`,
+    };
+  }
+
+  await sql`
+    UPDATE settings SET test_voter_count = ${people}, test_selections = ${picks}
+    WHERE id = 1
+  `;
+
+  const loaded = await writeRoster(
+    dummyVoters(people).map((v) => ({ voterId: v.voterId, name: v.name })),
+    `practice run, ${people} people choosing ${picks}`,
+  );
+  if (!loaded.ok) return loaded;
+
+  await audit("set_practice_size", `${people} people, choosing ${picks} each`);
+  revalidatePath("/admin");
+  revalidatePath("/");
+  return {
+    ok: true,
+    message: `Practice set up. ${people} made up people, each choosing ${picks} names. Download the Voter ID sheet and send a code to each of your helpers.`,
+  };
+}
+
+/** Puts the election back to its real size. */
+export async function clearPracticeSize(): Promise<ActionResult> {
+  if (!(await requireAdmin())) return DENIED;
+  const blocked = await rosterIsEditable();
+  if (blocked) return blocked;
+
+  await sql`
+    UPDATE settings SET test_voter_count = NULL, test_selections = NULL
+    WHERE id = 1
+  `;
+  await sql`DELETE FROM voters`;
+  await audit("clear_practice_size", "back to the full election size");
+  revalidatePath("/admin");
+  revalidatePath("/");
+  return {
+    ok: true,
+    message: "Back to the full size. Load your real list of names.",
+  };
+}
+
 /** Fills the register with made up people so the practice run can be done. */
 export async function loadDummyVoters(): Promise<ActionResult> {
   if (!(await requireAdmin())) return DENIED;
@@ -254,7 +333,7 @@ export async function loadDummyVoters(): Promise<ActionResult> {
   if (settings.mode !== "test") {
     return { ok: false, message: "Dummy voters can only be loaded in test mode." };
   }
-  const csv = dummyVoters(config.expectedVoterCount)
+  const csv = dummyVoters(settings.expectedVoterCount)
     .map((v) => `${v.voterId},${v.name}`)
     .join("\n");
   return loadRoster(csv);
@@ -302,7 +381,8 @@ export async function resetForLive(
     await tx`DELETE FROM session_locks`;
     await tx`
       UPDATE settings SET mode = 'live', voting_open = TRUE,
-        closed_at = NULL, election_day = CURRENT_DATE
+        closed_at = NULL, election_day = CURRENT_DATE,
+        test_voter_count = NULL, test_selections = NULL
       WHERE id = 1
     `;
   });

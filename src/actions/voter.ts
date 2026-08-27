@@ -161,7 +161,6 @@ export async function submitBallot(choices: number[]): Promise<SubmitResult> {
   await ensureSchema();
 
   const session = await readVoterSession();
-  const required = config.selectionsRequired;
 
   // A retry arriving after the vote already went through.
   if (session.voted && !session.voterId) return { status: "ok" };
@@ -169,6 +168,10 @@ export async function submitBallot(choices: number[]): Promise<SubmitResult> {
 
   const settings = await getSettings();
   if (!settings.votingOpen) return { status: "closed" };
+
+  // Read from settings, not from the environment, so a practice run at a
+  // smaller size is enforced just as strictly as the real thing.
+  const required = settings.selectionsRequired;
 
   // Server side validation. The browser is never trusted about any of this.
   if (!Array.isArray(choices)) return { status: "invalid" };

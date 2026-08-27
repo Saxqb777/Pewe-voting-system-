@@ -12,6 +12,8 @@ import {
   loadDummyVoters,
   loadRoster,
   loadRosterFromNames,
+  setPracticeSize,
+  clearPracticeSize,
   resetForLive,
   resetVote,
   switchToTestMode,
@@ -93,6 +95,9 @@ export function Dashboard({ initial }: { initial: DashboardData }) {
       <PendingPanel voters={pendingVoters} total={data.turnout.total} />
       <VoterToolsPanel data={data} run={run} pending={pending} />
       <FlagsPanel data={data} run={run} pending={pending} />
+      {data.mode === "test" ? (
+        <PracticePanel data={data} run={run} pending={pending} />
+      ) : null}
       <RosterPanel data={data} run={run} pending={pending} />
       <ResetPanel data={data} run={run} pending={pending} />
       <AuditPanel data={data} />
@@ -419,6 +424,103 @@ function FlagGroup({ title, detail }: { title: string; detail: string }) {
       <p className="font-semibold text-warn">{title}</p>
       <p className="mt-1 text-sm text-ink">{detail}</p>
     </div>
+  );
+}
+
+function PracticePanel({
+  data,
+  run,
+  pending,
+}: {
+  data: DashboardData;
+  run: RunFn;
+  pending: boolean;
+}) {
+  const [people, setPeople] = useState(20);
+  const [picks, setPicks] = useState(5);
+  const blocked = data.turnout.ballots > 0;
+  const valid = people >= 3 && picks >= 1 && picks < people;
+
+  return (
+    <Section title={strings.admin.practiceHeading}>
+      <Notice tone={data.isPracticeSize ? "warn" : "info"}>
+        {data.isPracticeSize
+          ? strings.admin.practiceActive(
+              data.expectedVoterCount,
+              data.selectionsRequired,
+            )
+          : strings.admin.practiceFull(
+              data.liveVoterCount,
+              data.liveSelections,
+            )}
+      </Notice>
+
+      {blocked ? (
+        <p className="mt-3 text-base text-ink-soft">
+          {strings.admin.rosterBlocked}
+        </p>
+      ) : (
+        <>
+          <p className="mt-3 text-sm text-ink-soft">
+            {strings.admin.practiceHelp}
+          </p>
+
+          <div className="mt-3 flex flex-wrap gap-4">
+            <label className="flex flex-col gap-1">
+              <span className="text-sm font-semibold text-ink">
+                {strings.admin.practicePeople}
+              </span>
+              <input
+                type="number"
+                min={3}
+                max={999}
+                value={people}
+                onChange={(e) => setPeople(Number(e.target.value))}
+                className="w-32 rounded-xl border-2 border-line bg-card px-3 py-2 text-base text-ink focus:border-brand"
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-sm font-semibold text-ink">
+                {strings.admin.practicePicks}
+              </span>
+              <input
+                type="number"
+                min={1}
+                max={998}
+                value={picks}
+                onChange={(e) => setPicks(Number(e.target.value))}
+                className="w-32 rounded-xl border-2 border-line bg-card px-3 py-2 text-base text-ink focus:border-brand"
+              />
+            </label>
+          </div>
+
+          {!valid ? (
+            <p className="mt-2 text-sm font-medium text-danger">
+              Each voter has to choose fewer names than there are people.
+            </p>
+          ) : null}
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              tone="primary"
+              disabled={pending || !valid}
+              onClick={() => run(() => setPracticeSize(people, picks))}
+            >
+              {strings.admin.practiceStart}
+            </Button>
+            {data.isPracticeSize ? (
+              <Button disabled={pending} onClick={() => run(clearPracticeSize)}>
+                {strings.admin.practiceClear}
+              </Button>
+            ) : null}
+          </div>
+
+          <p className="mt-3 text-sm text-ink-soft">
+            {strings.admin.practiceNote}
+          </p>
+        </>
+      )}
+    </Section>
   );
 }
 

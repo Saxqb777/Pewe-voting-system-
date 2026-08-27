@@ -202,7 +202,7 @@ export async function getResults(): Promise<Results> {
   const settings = await getSettings();
   if (settings.votingOpen) throw new VotingStillOpenError();
 
-  const seats = config.selectionsRequired;
+  const seats = settings.selectionsRequired;
 
   // Ballots are read in a randomised order, as they always are.
   const tally = await sql<{ choice: number; votes: number }[]>`
@@ -303,6 +303,13 @@ export type Dashboard = {
   mode: "test" | "live";
   /** How many voters a roster must contain before it is accepted. */
   expectedVoterCount: number;
+  /** How many names each voter must choose. */
+  selectionsRequired: number;
+  /** True when those two numbers are a practice size rather than the real one. */
+  isPracticeSize: boolean;
+  /** The real numbers, so the admin can see what live will use. */
+  liveVoterCount: number;
+  liveSelections: number;
   votingOpen: boolean;
   closedAt: string | null;
   turnout: Turnout;
@@ -345,7 +352,11 @@ export async function getDashboard(): Promise<Dashboard> {
 
   return {
     mode: settings.mode,
-    expectedVoterCount: config.expectedVoterCount,
+    expectedVoterCount: settings.expectedVoterCount,
+    selectionsRequired: settings.selectionsRequired,
+    isPracticeSize: settings.isPracticeSize,
+    liveVoterCount: config.expectedVoterCount,
+    liveSelections: config.selectionsRequired,
     votingOpen: settings.votingOpen,
     closedAt: settings.closedAt ? settings.closedAt.toISOString() : null,
     turnout,

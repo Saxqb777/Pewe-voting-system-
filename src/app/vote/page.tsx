@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { getSettings } from "@/lib/settings";
 import { readVoterSession } from "@/lib/session";
 import { getCandidates } from "@/lib/candidates";
-import { config } from "@/lib/config";
 import { Screen } from "@/components/Screen";
 import { BallotFlow } from "@/components/BallotFlow";
 
@@ -21,7 +20,7 @@ export default async function VotePage() {
     <Screen mode={settings.mode}>
       <BallotFlow
         candidates={candidates}
-        required={config.selectionsRequired}
+        required={settings.selectionsRequired}
       />
     </Screen>
   );

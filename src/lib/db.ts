@@ -168,9 +168,17 @@ CREATE TABLE IF NOT EXISTS settings (
   voting_open   BOOLEAN NOT NULL DEFAULT TRUE,
   closed_at     TIMESTAMPTZ,
   election_day  DATE NOT NULL DEFAULT CURRENT_DATE,
+  -- Practice run size. Only ever read while mode is 'test', and cleared by
+  -- the reset that switches the election live, so a real vote can never
+  -- inherit a practice number.
+  test_voter_count  INTEGER,
+  test_selections   INTEGER,
   CONSTRAINT settings_single_row CHECK (id = 1),
   CONSTRAINT settings_mode_valid CHECK (mode IN ('test', 'live'))
 );
+
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS test_voter_count INTEGER;
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS test_selections INTEGER;
 
 INSERT INTO settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
 
@@ -226,6 +234,12 @@ async function createSchema(): Promise<void> {
         WHERE table_schema = 'public'
           AND table_name = 'voters'
           AND column_name = 'vote_claim'
+      )
+      AND EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'settings'
+          AND column_name = 'test_selections'
       ) AS ready
   `;
   if (ready?.ready) return;

@@ -141,6 +141,20 @@ export const strings = {
       "No counts, no leader board and no partial results exist anywhere in this app before you close voting.",
     viewResults: "View results",
 
+    practiceHeading: "Practice run size",
+    practiceHelp:
+      "A practice does not need the whole village. Choose how many made up people to put on the ballot and how many names each voter picks. The app invents the people and their codes for you.",
+    practicePeople: "People on the practice ballot",
+    practicePicks: "Names each voter must choose",
+    practiceStart: "Set up the practice",
+    practiceClear: "Back to the full size",
+    practiceActive: (people: number, picks: number) =>
+      `Practice size in use: ${people} people, choosing ${picks} names each.`,
+    practiceFull: (people: number, picks: number) =>
+      `Full size: ${people} people, choosing ${picks} names each.`,
+    practiceNote:
+      "This only applies while the app is in test mode. Switching to live puts it back to the real numbers.",
+
     rosterHeading: "Voter list",
     rosterModeNames: "I have names only. Make the Voter IDs for me",
     rosterModeIds: "I already have a Voter ID for each person",
