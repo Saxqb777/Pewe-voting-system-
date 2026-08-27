@@ -1,6 +1,6 @@
-# Village Election
+# PEWE Election
 
-A private, single link voting app for one village election.
+A private, single link voting app for the PEWE village election.
 
 - 138 voters, each selecting exactly 16 names from the same list of 138
 - Every voter is also a candidate

@@ -8,7 +8,7 @@
 
 export const strings = {
   common: {
-    appName: "Village Election",
+    appName: "PEWE Election",
     testBanner: "TEST MODE. This is a practice run. Nothing here counts.",
     loading: "Please wait",
     back: "Back",
@@ -26,7 +26,7 @@ export const strings = {
   },
 
   entry: {
-    title: "Village Election",
+    title: "PEWE Election",
     subtitle: "Enter your Voter ID to begin",
     label: "Voter ID",
     countryLabel: "Where are you voting from?",
@@ -48,6 +48,10 @@ export const strings = {
     opensAt: (when: string) => `Voting opens on ${when}. Please come back then.`,
     help: "Your Voter ID was given to you by the election admin.",
     closesAt: (when: string) => `Voting closes on ${when}`,
+    closesIn: "Voting closes in",
+    opensIn: "Voting opens in",
+    closingSoon: "Voting closes very soon. Please finish now.",
+    ballotClosesIn: "Time left to vote:",
     whatHappensHeading: "What happens next",
     whatHappens: (n: number) => [
       `You will see all the names. Choose exactly ${n} of them.`,
@@ -247,6 +251,16 @@ export const strings = {
     rosterDummy: "Load dummy voters for testing",
     rosterBlocked:
       "The voter list cannot be replaced while there are ballots in the ballot box.",
+
+    restartHeading: "Start over",
+    restartHelp:
+      "Clears every vote and puts the election back to not started, keeping your voter list and everyone's codes. Use it to run the practice again.",
+    restartButton: "Clear the votes and start over",
+    restartConfirm:
+      "This deletes every vote cast so far and puts the election back to not started. Your voter list and everyone's codes are kept. Continue?",
+    restartLiveWarning: (phrase: string) =>
+      `This election is LIVE. Starting over will destroy real votes. Type ${phrase} to confirm.`,
+    restartDone: "Votes cleared. The election is back to not started.",
 
     modeHeading: "Mode",
     modeTest: "TEST",

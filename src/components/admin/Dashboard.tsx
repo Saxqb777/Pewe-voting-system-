@@ -4,13 +4,18 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import type { Dashboard as DashboardData } from "@/lib/admin-data";
 import { strings } from "@/lib/strings";
 import { describeMoment } from "@/lib/countdown";
-import { RESET_PHRASE, LIVE_OVERRIDE_PHRASE } from "@/lib/phrases";
+import {
+  RESET_PHRASE,
+  LIVE_OVERRIDE_PHRASE,
+  RESTART_PHRASE,
+} from "@/lib/phrases";
 import {
   adminSignOut,
   loadDummyVoters,
   loadRoster,
   loadRosterFromNames,
   setPracticeSize,
+  restartElection,
   setVotingWindow,
   clearVotingWindow,
   clearPracticeSize,
@@ -104,6 +109,7 @@ export function Dashboard({ initial }: { initial: DashboardData }) {
         <PracticePanel data={data} run={run} pending={pending} />
       ) : null}
       <RosterPanel data={data} run={run} pending={pending} />
+      <RestartPanel data={data} run={run} pending={pending} />
       <ResetPanel data={data} run={run} pending={pending} />
       <AuditPanel data={data} />
     </div>
@@ -762,6 +768,58 @@ function RosterPanel({
 /** Counts the non blank lines, so the admin can see the total before loading. */
 function countRows(text: string): number {
   return text.split(/\r?\n/).filter((line) => line.trim().length > 0).length;
+}
+
+function RestartPanel({
+  data,
+  run,
+  pending,
+}: {
+  data: DashboardData;
+  run: RunFn;
+  pending: boolean;
+}) {
+  const [phrase, setPhrase] = useState("");
+  const isLive = data.mode === "live";
+  const ready = !isLive || phrase.trim().toUpperCase() === RESTART_PHRASE;
+
+  return (
+    <Section title={strings.admin.restartHeading}>
+      <p className="text-base text-ink">{strings.admin.restartHelp}</p>
+
+      {isLive ? (
+        <>
+          <div className="mt-3">
+            <Notice tone="danger">
+              {strings.admin.restartLiveWarning(RESTART_PHRASE)}
+            </Notice>
+          </div>
+          <input
+            value={phrase}
+            onChange={(e) => setPhrase(e.target.value)}
+            placeholder={RESTART_PHRASE}
+            autoCapitalize="characters"
+            className="mt-3 w-full rounded-xl border-2 border-danger bg-card px-4 py-3 text-base text-ink"
+          />
+        </>
+      ) : null}
+
+      <div className="mt-3">
+        <Button
+          tone="danger"
+          disabled={pending || !ready}
+          onClick={() => {
+            if (window.confirm(strings.admin.restartConfirm)) {
+              run(() => restartElection(phrase));
+              setPhrase("");
+            }
+          }}
+        >
+          {strings.admin.restartButton}
+        </Button>
+      </div>
+    </Section>
+  );
 }
 
 function ResetPanel({

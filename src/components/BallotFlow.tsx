@@ -11,9 +11,11 @@ type Step = "select" | "confirm";
 export function BallotFlow({
   candidates,
   required,
+  countdown,
 }: {
   candidates: Candidate[];
   required: number;
+  countdown?: React.ReactNode;
 }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("select");
@@ -100,6 +102,7 @@ export function BallotFlow({
       <p className="mt-1 text-base text-ink-soft">
         {strings.ballot.instruction(required)}
       </p>
+      {countdown}
 
       <div className="sticky top-0 z-30 -mx-5 bg-paper px-5 pb-3 pt-3">
         <input

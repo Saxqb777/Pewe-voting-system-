@@ -4,6 +4,7 @@ import { readVoterSession } from "@/lib/session";
 import { getCandidates } from "@/lib/candidates";
 import { Screen } from "@/components/Screen";
 import { BallotFlow } from "@/components/BallotFlow";
+import { BallotCountdown } from "@/components/BallotCountdown";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,11 @@ export default async function VotePage() {
       <BallotFlow
         candidates={candidates}
         required={settings.selectionsRequired}
+        countdown={
+          <BallotCountdown
+            closesAt={settings.closesAt ? settings.closesAt.toISOString() : null}
+          />
+        }
       />
     </Screen>
   );

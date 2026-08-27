@@ -65,7 +65,7 @@ export const SHARED_IP_FLAG_THRESHOLD = 3;
 /** A voter with at least this many failed attempts is shown as a flag. */
 export const VOTER_FAILED_ATTEMPT_FLAG_THRESHOLD = 3;
 
-export { RESET_PHRASE, LIVE_OVERRIDE_PHRASE } from "./phrases";
+export { RESET_PHRASE, LIVE_OVERRIDE_PHRASE, RESTART_PHRASE } from "./phrases";
 
 // --------------------------------------------------------------------------
 // Setup checks

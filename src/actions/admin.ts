@@ -14,7 +14,12 @@ import {
   clearAdminSession,
   passwordMatches,
 } from "@/lib/session";
-import { config, RESET_PHRASE, LIVE_OVERRIDE_PHRASE } from "@/lib/config";
+import {
+  config,
+  RESET_PHRASE,
+  LIVE_OVERRIDE_PHRASE,
+  RESTART_PHRASE,
+} from "@/lib/config";
 
 export type ActionResult = { ok: true; message?: string } | { ok: false; message: string };
 
@@ -424,6 +429,58 @@ export async function loadDummyVoters(): Promise<ActionResult> {
     .map((v) => `${v.voterId},${v.name}`)
     .join("\n");
   return loadRoster(csv);
+}
+
+/**
+ * Clears the votes and puts the election back to the start, keeping the voter
+ * list and everybody's codes.
+ *
+ * This is the practice-again button. It does not touch the mode, so it cannot
+ * turn a rehearsal into a real election by accident. While the election is
+ * live it demands a typed phrase, because there it destroys real votes.
+ */
+export async function restartElection(phrase: string): Promise<ActionResult> {
+  if (!(await requireAdmin())) return DENIED;
+  await ensureSchema();
+
+  const settings = await getSettings();
+  if (settings.mode === "live") {
+    if ((phrase ?? "").trim().toUpperCase() !== RESTART_PHRASE) {
+      return {
+        ok: false,
+        message: `This election is live. Type ${RESTART_PHRASE} to confirm, or nothing was changed.`,
+      };
+    }
+  }
+
+  await sql.begin(async (tx) => {
+    await tx`DELETE FROM ballots`;
+    await tx`
+      UPDATE voters SET
+        has_voted = FALSE, voted_at = NULL, vote_claim = NULL,
+        device_fingerprint = NULL, ip_address = NULL, country = NULL,
+        failed_attempts = 0, is_locked = FALSE
+    `;
+    await tx`DELETE FROM id_attempts`;
+    await tx`DELETE FROM session_locks`;
+    // The window goes too. A closing time already in the past would put the
+    // election straight back into finished the moment it restarted.
+    await tx`
+      UPDATE settings SET started_at = NULL, closed_at = NULL,
+        voting_open = TRUE, opens_at = NULL, closes_at = NULL
+      WHERE id = 1
+    `;
+  });
+
+  await audit(
+    "restart_election",
+    settings.mode === "live"
+      ? "A live election was cleared and restarted."
+      : "Votes cleared, back to not started.",
+  );
+  revalidatePath("/admin");
+  revalidatePath("/");
+  return { ok: true, message: "Votes cleared. The election is back to not started." };
 }
 
 /**
