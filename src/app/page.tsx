@@ -14,15 +14,14 @@ export default async function EntryPage() {
   const settings = await getSettings();
   const session = await readVoterSession();
 
-  // Not open yet is a different message from closed for good. Telling
-  // somebody it is over when it has not started would send them away.
-  if (settings.schedule === "before" && settings.opensAt) {
+  // Three states, in the order a voter meets them. Judging by the clock alone
+  // would have told voters it had not opened while the admin had already
+  // pressed Start, since the schedule still said before.
+  if (settings.votingEnded) {
     return (
       <Screen mode={settings.mode}>
-        <div className="pt-8 text-center">
-          <h1 className="text-3xl font-bold text-ink">{strings.entry.title}</h1>
-          <OpensAtNotice opensAt={settings.opensAt.toISOString()} />
-        </div>
+        <h1 className="text-3xl font-bold text-ink">{strings.closed.title}</h1>
+        <p className="mt-3 text-lg text-ink-soft">{strings.closed.lead}</p>
       </Screen>
     );
   }
@@ -30,8 +29,16 @@ export default async function EntryPage() {
   if (!settings.votingOpen) {
     return (
       <Screen mode={settings.mode}>
-        <h1 className="text-3xl font-bold text-ink">{strings.closed.title}</h1>
-        <p className="mt-3 text-lg text-ink-soft">{strings.closed.lead}</p>
+        <div className="pt-8 text-center">
+          <h1 className="text-3xl font-bold text-ink">{strings.entry.title}</h1>
+          {settings.opensAt && settings.schedule === "before" ? (
+            <OpensAtNotice opensAt={settings.opensAt.toISOString()} />
+          ) : (
+            <p className="mt-4 text-lg text-ink-soft">
+              {strings.entry.notReady}
+            </p>
+          )}
+        </div>
       </Screen>
     );
   }
