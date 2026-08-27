@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #14201a;
+  --color-ink-soft: #4a5b52;
+  --color-paper: #f7f5ef;
+  --color-card: #ffffff;
+  --color-line: #ddd8cc;
+  --color-brand: #14603c;
+  --color-brand-dark: #0e4a2e;
+  --color-brand-soft: #e6f0ea;
+  --color-warn: #8a5a00;
+  --color-warn-soft: #fdf1d8;
+  --color-danger: #9a2020;
+  --color-danger-soft: #fbe9e9;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+/* Big, obvious focus ring. Many voters will be tapping, but anyone using a
+   keyboard should never lose their place. */
+:focus-visible {
+  outline: 3px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+/* Nothing should animate long enough to feel slow. */
+* {
+  animation-duration: 0.15s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+input,
+button,
+select,
+textarea {
+  font: inherit;
+}
