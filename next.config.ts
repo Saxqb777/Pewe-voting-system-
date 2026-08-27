@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Stamped once when the site is built, so the admin can see at a glance
+  // which build is live rather than guessing whether an update landed.
+  env: { BUILD_TIME: new Date().toISOString() },
   poweredByHeader: false,
   reactStrictMode: true,
   async headers() {

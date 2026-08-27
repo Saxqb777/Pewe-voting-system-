@@ -7,6 +7,7 @@ import { Screen } from "@/components/Screen";
 import { AdminLogin } from "@/components/admin/AdminLogin";
 import { Dashboard } from "@/components/admin/Dashboard";
 import { SetupNeeded } from "@/components/admin/SetupNeeded";
+import { VersionStamp } from "@/components/admin/VersionStamp";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ export default async function AdminPage() {
     return (
       <Screen mode="live" wide>
         <SetupNeeded problems={problems} />
+        <VersionStamp />
       </Screen>
     );
   }
@@ -31,6 +33,7 @@ export default async function AdminPage() {
         <SetupNeeded
           problems={[{ variable: "DATABASE_URL", problem: ping.reason }]}
         />
+        <VersionStamp />
       </Screen>
     );
   }
@@ -42,6 +45,7 @@ export default async function AdminPage() {
     return (
       <Screen mode={settings.mode}>
         <AdminLogin />
+        <VersionStamp />
       </Screen>
     );
   }
@@ -50,6 +54,7 @@ export default async function AdminPage() {
   return (
     <Screen mode={settings.mode} wide>
       <Dashboard initial={data} />
+      <VersionStamp />
     </Screen>
   );
 }
