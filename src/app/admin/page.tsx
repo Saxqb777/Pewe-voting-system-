@@ -1,6 +1,7 @@
 import { checkConfig } from "@/lib/config";
 import { readAdminSession } from "@/lib/session";
 import { getSettings } from "@/lib/settings";
+import { pingDatabase } from "@/lib/db";
 import { getDashboard } from "@/lib/admin-data";
 import { Screen } from "@/components/Screen";
 import { AdminLogin } from "@/components/admin/AdminLogin";
@@ -17,6 +18,19 @@ export default async function AdminPage() {
     return (
       <Screen mode="live" wide>
         <SetupNeeded problems={problems} />
+      </Screen>
+    );
+  }
+
+  // The settings look right, so the next thing that can go wrong is the
+  // database itself. Say so plainly rather than failing to a blank page.
+  const ping = await pingDatabase();
+  if (!ping.ok) {
+    return (
+      <Screen mode="live" wide>
+        <SetupNeeded
+          problems={[{ variable: "DATABASE_URL", problem: ping.reason }]}
+        />
       </Screen>
     );
   }

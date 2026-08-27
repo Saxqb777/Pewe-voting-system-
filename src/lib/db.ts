@@ -223,3 +223,52 @@ export async function audit(action: string, detail = ""): Promise<void> {
     INSERT INTO audit_log (action, detail) VALUES (${action}, ${detail})
   `;
 }
+
+/**
+ * Tries one trivial query and turns any failure into plain language.
+ *
+ * Shown on the admin screen so that a setup problem explains itself instead
+ * of appearing as a blank page. It deliberately never echoes the driver's raw
+ * message, because that can carry the database host and user name. It reports
+ * what to do about it and, at most, an error code.
+ */
+export async function pingDatabase(): Promise<
+  { ok: true } | { ok: false; reason: string }
+> {
+  try {
+    await sql`SELECT 1`;
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, reason: explainDatabaseError(error) };
+  }
+}
+
+function explainDatabaseError(error: unknown): string {
+  const code =
+    typeof error === "object" && error !== null && "code" in error
+      ? String((error as { code: unknown }).code)
+      : "";
+
+  switch (code) {
+    case "28P01":
+    case "28000":
+      return "The database refused the password. The connection string is out of date, most likely because the password was reset after it was copied. Copy the current one from Neon and paste it in again.";
+    case "3D000":
+      return "The connection string points at a database that does not exist. Copy it again from Neon.";
+    case "ENOTFOUND":
+    case "EAI_AGAIN":
+      return "The database address could not be found. The connection string is probably incomplete or has a stray space or quote mark in it. Paste it again with nothing added.";
+    case "ECONNREFUSED":
+      return "The database refused the connection. Check the connection string is the pooled one from Neon.";
+    case "ETIMEDOUT":
+    case "CONNECT_TIMEOUT":
+      return "The database did not answer in time. It may be waking up after being idle. Wait ten seconds and reload this page. If it keeps happening, check the connection string.";
+    case "CONNECTION_CLOSED":
+    case "CONNECTION_DESTROYED":
+      return "The connection to the database was dropped. Reload this page. If it keeps happening, copy the connection string again from Neon.";
+    default:
+      return code
+        ? `The database could not be reached. The error code was ${code}. Copy the connection string again from Neon and paste it in with nothing added.`
+        : "The database could not be reached. Copy the connection string again from Neon and paste it in with nothing added.";
+  }
+}
