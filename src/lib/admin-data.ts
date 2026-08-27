@@ -285,6 +285,8 @@ export type VoterRow = {
 
 export type Dashboard = {
   mode: "test" | "live";
+  /** How many voters a roster must contain before it is accepted. */
+  expectedVoterCount: number;
   votingOpen: boolean;
   closedAt: string | null;
   turnout: Turnout;
@@ -326,6 +328,7 @@ export async function getDashboard(): Promise<Dashboard> {
 
   return {
     mode: settings.mode,
+    expectedVoterCount: config.expectedVoterCount,
     votingOpen: settings.votingOpen,
     closedAt: settings.closedAt ? settings.closedAt.toISOString() : null,
     turnout,

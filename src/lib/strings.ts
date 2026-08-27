@@ -14,6 +14,14 @@ export const strings = {
     back: "Back",
     cancel: "Cancel",
     somethingWentWrong: "Something went wrong. Please try again.",
+    errorTitle: "Something went wrong",
+    errorLead:
+      "The page could not load. Your vote has not been affected. Please wait a moment and try again.",
+    errorRetry: "Try again",
+    errorContact:
+      "If it keeps happening, please contact the election admin.",
+    notFoundTitle: "Page not found",
+    notFoundLead: "Please use the link that was shared in the group.",
     slowConnectionHint: "If nothing happens, wait a moment and try once more.",
   },
 
@@ -125,8 +133,19 @@ export const strings = {
     viewResults: "View results",
 
     rosterHeading: "Voter list",
+    rosterModeNames: "I have names only. Make the Voter IDs for me",
+    rosterModeIds: "I already have a Voter ID for each person",
+    rosterNamesHelp:
+      "Paste one name per line, all 130 of them. The system will make a private Voter ID for each person.",
     rosterHelp:
       "Paste one row per voter as: Voter ID, then a comma, then the name. A header row is allowed.",
+    rosterRowCount: (found: number, expected: number) =>
+      found === expected
+        ? `${found} of ${expected} rows. Ready to load.`
+        : `${found} of ${expected} rows.`,
+    rosterDownloadSheet: "Download the Voter ID sheet",
+    rosterSheetWarning:
+      "Keep this sheet private. Give each person only their own Voter ID, one to one. If the IDs reach the group chat, anyone can vote as anyone.",
     rosterLoad: "Load this list",
     rosterCurrent: (n: number) => `${n} voters loaded`,
     rosterEmpty: "No voters loaded yet.",

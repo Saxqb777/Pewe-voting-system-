@@ -5,7 +5,8 @@ import { sql, ensureSchema, audit } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { getClientIp } from "@/lib/request-info";
 import { normaliseVoterId } from "@/lib/voter-id";
-import { parseRoster, duplicateNames } from "@/lib/roster";
+import { parseRoster, parseNameList, duplicateNames, type RosterRow } from "@/lib/roster";
+import { generateVoterIds } from "@/lib/voter-id-generator";
 import { dummyVoters } from "@/lib/dummy-voters";
 import {
   readAdminSession,
@@ -138,11 +139,8 @@ export async function reopenVoting(): Promise<ActionResult> {
   return { ok: true, message: "Voting is open again." };
 }
 
-/** Replaces the whole voter list. Refused while any ballot exists. */
-export async function loadRoster(csvText: string): Promise<ActionResult> {
-  if (!(await requireAdmin())) return DENIED;
-  await ensureSchema();
-
+/** Refuses any roster change once a single ballot has been cast. */
+async function rosterIsEditable(): Promise<ActionResult | null> {
   const [{ count: ballots }] = await sql<{ count: number }[]>`
     SELECT COUNT(*)::int AS count FROM ballots
   `;
@@ -153,6 +151,44 @@ export async function loadRoster(csvText: string): Promise<ActionResult> {
         "There are ballots in the ballot box. Reset for live first, or close and start a fresh election.",
     };
   }
+  return null;
+}
+
+/** Writes a checked roster, numbering candidates in the order given. */
+async function writeRoster(
+  rows: RosterRow[],
+  how: string,
+): Promise<ActionResult> {
+  await sql.begin(async (tx) => {
+    await tx`DELETE FROM voters`;
+    for (let i = 0; i < rows.length; i++) {
+      await tx`
+        INSERT INTO voters (voter_id, name, candidate_number)
+        VALUES (${rows[i].voterId}, ${rows[i].name}, ${i + 1})
+      `;
+    }
+  });
+
+  await audit("load_roster", `${rows.length} voters loaded, ${how}`);
+  revalidatePath("/admin");
+  revalidatePath("/");
+
+  const dupes = duplicateNames(rows);
+  const warning =
+    dupes.length > 0
+      ? ` Warning: these names appear more than once, so voters may not be able to tell them apart: ${dupes.join(", ")}. Every name also shows its candidate number on the ballot.`
+      : "";
+
+  return { ok: true, message: `${rows.length} voters loaded.${warning}` };
+}
+
+/** Replaces the whole voter list from rows that already carry a Voter ID. */
+export async function loadRoster(csvText: string): Promise<ActionResult> {
+  if (!(await requireAdmin())) return DENIED;
+  await ensureSchema();
+
+  const blocked = await rosterIsEditable();
+  if (blocked) return blocked;
 
   const parsed = parseRoster(
     csvText ?? "",
@@ -161,30 +197,39 @@ export async function loadRoster(csvText: string): Promise<ActionResult> {
   );
   if (!parsed.ok) return { ok: false, message: parsed.error };
 
-  await sql.begin(async (tx) => {
-    await tx`DELETE FROM voters`;
-    for (let i = 0; i < parsed.rows.length; i++) {
-      const row = parsed.rows[i];
-      await tx`
-        INSERT INTO voters (voter_id, name, candidate_number)
-        VALUES (${row.voterId}, ${row.name}, ${i + 1})
-      `;
-    }
-  });
+  return writeRoster(parsed.rows, "IDs supplied by the admin");
+}
 
-  await audit("load_roster", `${parsed.rows.length} voters loaded`);
-  revalidatePath("/admin");
-  revalidatePath("/");
+/**
+ * Replaces the whole voter list from names alone, making a Voter ID for each.
+ *
+ * The IDs are drawn with a cryptographic random number generator and are
+ * deliberately unrelated to the order of the list, so knowing one person's ID
+ * tells you nothing about anybody else's.
+ */
+export async function loadRosterFromNames(
+  namesText: string,
+): Promise<ActionResult> {
+  if (!(await requireAdmin())) return DENIED;
+  await ensureSchema();
 
-  const dupes = duplicateNames(parsed.rows);
-  const warning =
-    dupes.length > 0
-      ? ` Warning: these names appear more than once, so voters may not be able to tell them apart: ${dupes.join(", ")}. Every name also shows its candidate number on the ballot.`
-      : "";
+  const blocked = await rosterIsEditable();
+  if (blocked) return blocked;
 
+  const parsed = parseNameList(namesText ?? "", config.expectedVoterCount);
+  if (!parsed.ok) return { ok: false, message: parsed.error };
+
+  const ids = generateVoterIds(parsed.names.length);
+  const rows: RosterRow[] = parsed.names.map((name, i) => ({
+    name,
+    voterId: ids[i],
+  }));
+
+  const result = await writeRoster(rows, "IDs made by the system");
+  if (!result.ok) return result;
   return {
     ok: true,
-    message: `${parsed.rows.length} voters loaded.${warning}`,
+    message: `${rows.length} voters loaded and a Voter ID made for each one. Download the Voter ID sheet below, then hand each person only their own ID.`,
   };
 }
 

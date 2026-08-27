@@ -11,6 +11,7 @@ import {
   reopenVoting,
   loadDummyVoters,
   loadRoster,
+  loadRosterFromNames,
   resetForLive,
   resetVote,
   switchToTestMode,
@@ -430,36 +431,103 @@ function RosterPanel({
   run: RunFn;
   pending: boolean;
 }) {
-  const [csv, setCsv] = useState("");
+  const [text, setText] = useState("");
+  const [makeIds, setMakeIds] = useState(true);
   const blocked = data.turnout.ballots > 0;
+  const loaded = data.turnout.total > 0;
 
   return (
     <Section title={strings.admin.rosterHeading}>
       <p className="text-base text-ink">
-        {data.turnout.total > 0
+        {loaded
           ? strings.admin.rosterCurrent(data.turnout.total)
           : strings.admin.rosterEmpty}
       </p>
+
+      {loaded ? (
+        <div className="mt-3">
+          <a
+            href="/api/admin/roster"
+            className="inline-flex min-h-12 items-center rounded-xl border-2 border-line bg-card px-4 py-2 text-base font-semibold text-ink"
+          >
+            {strings.admin.rosterDownloadSheet}
+          </a>
+          <p className="mt-2 text-sm font-medium text-warn">
+            {strings.admin.rosterSheetWarning}
+          </p>
+        </div>
+      ) : null}
+
       {blocked ? (
         <div className="mt-3">
           <Notice tone="warn">{strings.admin.rosterBlocked}</Notice>
         </div>
       ) : (
         <>
-          <p className="mt-3 text-sm text-ink-soft">{strings.admin.rosterHelp}</p>
+          <fieldset className="mt-4">
+            <legend className="sr-only">How the Voter IDs are set</legend>
+            <label className="flex items-start gap-3 rounded-xl border-2 border-line bg-paper p-3">
+              <input
+                type="radio"
+                name="rosterMode"
+                checked={makeIds}
+                onChange={() => setMakeIds(true)}
+                className="mt-1 h-5 w-5 shrink-0"
+              />
+              <span className="text-base font-medium text-ink">
+                {strings.admin.rosterModeNames}
+              </span>
+            </label>
+            <label className="mt-2 flex items-start gap-3 rounded-xl border-2 border-line bg-paper p-3">
+              <input
+                type="radio"
+                name="rosterMode"
+                checked={!makeIds}
+                onChange={() => setMakeIds(false)}
+                className="mt-1 h-5 w-5 shrink-0"
+              />
+              <span className="text-base font-medium text-ink">
+                {strings.admin.rosterModeIds}
+              </span>
+            </label>
+          </fieldset>
+
+          <p className="mt-3 text-sm text-ink-soft">
+            {makeIds ? strings.admin.rosterNamesHelp : strings.admin.rosterHelp}
+          </p>
           <textarea
-            value={csv}
-            onChange={(e) => setCsv(e.target.value)}
-            rows={8}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={10}
             spellCheck={false}
-            placeholder={"100001,Amina Khan\n100002,Bilal Shah"}
+            placeholder={
+              makeIds
+                ? "Amina Khan\nBilal Shah\nChandra Baig"
+                : "100001,Amina Khan\n100002,Bilal Shah"
+            }
             className="mt-2 w-full rounded-xl border-2 border-line bg-card px-3 py-2 font-mono text-sm text-ink focus:border-brand"
           />
+          <p
+            className={`mt-1 text-sm ${
+              countRows(text) === data.expectedVoterCount
+                ? "font-medium text-brand"
+                : "text-ink-soft"
+            }`}
+          >
+            {strings.admin.rosterRowCount(
+              countRows(text),
+              data.expectedVoterCount,
+            )}
+          </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Button
               tone="primary"
-              disabled={pending || csv.trim().length === 0}
-              onClick={() => run(() => loadRoster(csv))}
+              disabled={pending || text.trim().length === 0}
+              onClick={() =>
+                run(() =>
+                  makeIds ? loadRosterFromNames(text) : loadRoster(text),
+                )
+              }
             >
               {strings.admin.rosterLoad}
             </Button>
@@ -473,6 +541,11 @@ function RosterPanel({
       )}
     </Section>
   );
+}
+
+/** Counts the non blank lines, so the admin can see the total before loading. */
+function countRows(text: string): number {
+  return text.split(/\r?\n/).filter((line) => line.trim().length > 0).length;
 }
 
 function ResetPanel({

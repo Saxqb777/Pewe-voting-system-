@@ -124,3 +124,62 @@ export function duplicateNames(rows: RosterRow[]): string[] {
     .map((r) => r.name)
     .filter((n, i, all) => all.indexOf(n) === i);
 }
+
+export type NameListParse =
+  | { ok: true; names: string[] }
+  | { ok: false; error: string };
+
+/**
+ * Parses a list of names with no Voter IDs, one per line. Used when the admin
+ * has the village list but the IDs still have to be made.
+ */
+export function parseNameList(
+  text: string,
+  expectedCount: number,
+): NameListParse {
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
+  if (lines.length === 0) return { ok: false, error: "The list is empty." };
+
+  let start = 0;
+  if (/^"?names?"?$/i.test(lines[0])) start = 1;
+
+  const names: string[] = [];
+  for (let i = start; i < lines.length; i++) {
+    const rowNumber = names.length + 1;
+    // Tolerate a trailing comma or a stray empty second column.
+    const cells = lines[i]
+      .split(/[,;\t]/)
+      .map((c) => c.trim().replace(/^"|"$/g, ""))
+      .filter((c) => c.length > 0);
+
+    if (cells.length === 0) {
+      return { ok: false, error: `Row ${rowNumber} is blank.` };
+    }
+    if (cells.length > 1) {
+      return {
+        ok: false,
+        error: `Row ${rowNumber} has more than one column. In this mode the list must be names only, one per line. The row reads: ${lines[i]}`,
+      };
+    }
+    if (/^\d+$/.test(cells[0])) {
+      return {
+        ok: false,
+        error: `Row ${rowNumber} is only digits, so it looks like a Voter ID rather than a name. The row reads: ${lines[i]}`,
+      };
+    }
+    names.push(cells[0]);
+  }
+
+  if (names.length !== expectedCount) {
+    return {
+      ok: false,
+      error: `The list has ${names.length} names. It must have exactly ${expectedCount}. Nothing was loaded.`,
+    };
+  }
+
+  return { ok: true, names };
+}

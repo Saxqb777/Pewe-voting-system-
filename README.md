@@ -156,7 +156,37 @@ The schema creates itself on first use, so there is no migration step.
 
 ## Loading the real voter list
 
-In the admin dashboard, under **Voter list**, paste one row per person:
+In the admin dashboard, under **Voter list**, there are two ways in.
+
+### If you have names only, and the IDs still have to be made
+
+This is the usual case. Pick **I have names only. Make the Voter IDs for me**
+and paste one name per line:
+
+```
+Amina Khan
+Bilal Shah
+Chandra Baig
+```
+
+The system makes a six digit Voter ID for each person, then offers you
+**Download the Voter ID sheet**, a CSV of candidate number, name and Voter ID.
+
+The IDs are drawn with a cryptographic random number generator, not
+`Math.random`, and they are deliberately unrelated to the order of the list.
+Knowing one person's ID tells you nothing about the next one. Six digits gives
+900000 possibilities for 130 people, so a stranger guessing has about a one in
+6900 chance per try, against a limit of five wrong tries per phone.
+
+**Hand each person only their own ID, one to one.** The voting link is public
+by design. The ID is the only thing standing between a stranger and somebody
+else's ballot, so if the sheet reaches the group chat, anyone can vote as
+anyone.
+
+### If you already have a Voter ID for each person
+
+Pick **I already have a Voter ID for each person** and paste one row per
+person:
 
 ```
 100001,Amina Khan
@@ -166,22 +196,26 @@ In the admin dashboard, under **Voter list**, paste one row per person:
 Commas, semicolons and tabs all work as the separator. A header row is ignored.
 A name containing a comma should be wrapped in double quotes.
 
-The loader refuses the whole list unless every check passes, and tells you which
-row is wrong:
+### Either way
+
+The loader refuses the whole list unless every check passes, and tells you
+which row is wrong:
 
 - exactly 130 rows
 - no duplicate Voter ID
 - no blank name
 - no blank Voter ID
-- every row has two columns
+- the right number of columns for the mode you picked
 
-Candidate numbers are given out in the order of your file, so sort the file the
-way you want the ballot to read. If two people share a name you are warned, and
-the candidate number next to every name tells them apart.
+A running count under the box shows how many rows you have pasted, so you can
+see you are at 130 before you load.
 
-The voter list cannot be replaced while there are ballots in the ballot box.
+Candidate numbers are given out in the order of your list, so sort it the way
+you want the ballot to read. If two people share a name you are warned, and the
+candidate number next to every name tells them apart.
 
----
+The voter list cannot be replaced once there is a single ballot in the ballot
+box. The ID sheet stays downloadable.
 
 ## Test run, then the real thing
 
