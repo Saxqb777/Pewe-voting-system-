@@ -39,7 +39,16 @@ export const strings = {
       "Too many attempts from this phone. Please contact the election admin.",
     closed: "Voting is closed. Thank you.",
     notReady: "Voting has not opened yet. Please try again later.",
+    opensAt: (when: string) => `Voting opens on ${when}. Please come back then.`,
     help: "Your Voter ID was given to you by the election admin.",
+    closesAt: (when: string) => `Voting closes on ${when}`,
+    whatHappensHeading: "What happens next",
+    whatHappens: (n: number) => [
+      `You will see all the names. Choose exactly ${n} of them.`,
+      "You can search for a name, and change your mind before you confirm.",
+      "You can vote once only, so check your choices carefully.",
+      "Nobody can see who you voted for. Not the admin, not anyone.",
+    ],
   },
 
   ballot: {
@@ -140,6 +149,22 @@ export const strings = {
     resultsHiddenNote:
       "No counts, no leader board and no partial results exist anywhere in this app before you close voting.",
     viewResults: "View results",
+
+    scheduleHeading: "Voting times",
+    scheduleHelp:
+      "Set when voting opens and when it closes. Leave either one empty to control it by hand instead. Times are in your own time zone.",
+    scheduleOpens: "Voting opens",
+    scheduleCloses: "Voting closes",
+    scheduleSave: "Save these times",
+    scheduleClear: "Remove the times",
+    scheduleNone: "No times set. Voting is controlled by the buttons above.",
+    scheduleBefore: (when: string) =>
+      `Voting has not opened yet. It opens on ${when}.`,
+    scheduleDuring: (when: string) => `Voting is open until ${when}.`,
+    scheduleDuringNoEnd: "Voting is open, with no closing time set.",
+    scheduleAfter: (when: string) => `Voting closed on ${when}.`,
+    scheduleBackwards: "The closing time has to be after the opening time.",
+    schedulePast: "That closing time has already passed.",
 
     practiceHeading: "Practice run size",
     practiceHelp:

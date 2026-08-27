@@ -173,12 +173,18 @@ CREATE TABLE IF NOT EXISTS settings (
   -- inherit a practice number.
   test_voter_count  INTEGER,
   test_selections   INTEGER,
+  -- Optional voting window. Stored with a time zone, so the moment is exact
+  -- wherever the admin or a voter happens to be.
+  opens_at      TIMESTAMPTZ,
+  closes_at     TIMESTAMPTZ,
   CONSTRAINT settings_single_row CHECK (id = 1),
   CONSTRAINT settings_mode_valid CHECK (mode IN ('test', 'live'))
 );
 
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS test_voter_count INTEGER;
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS test_selections INTEGER;
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS opens_at TIMESTAMPTZ;
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS closes_at TIMESTAMPTZ;
 
 INSERT INTO settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
 
@@ -240,6 +246,12 @@ async function createSchema(): Promise<void> {
         WHERE table_schema = 'public'
           AND table_name = 'settings'
           AND column_name = 'test_selections'
+      )
+      AND EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'settings'
+          AND column_name = 'closes_at'
       ) AS ready
   `;
   if (ready?.ready) return;

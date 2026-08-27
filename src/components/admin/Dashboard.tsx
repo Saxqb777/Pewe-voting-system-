@@ -13,6 +13,8 @@ import {
   loadRoster,
   loadRosterFromNames,
   setPracticeSize,
+  setVotingWindow,
+  clearVotingWindow,
   clearPracticeSize,
   resetForLive,
   resetVote,
@@ -92,6 +94,7 @@ export function Dashboard({ initial }: { initial: DashboardData }) {
 
       <TurnoutPanel data={data} />
       <ClosePanel data={data} run={run} pending={pending} />
+      <SchedulePanel data={data} run={run} pending={pending} />
       <PendingPanel voters={pendingVoters} total={data.turnout.total} />
       <VoterToolsPanel data={data} run={run} pending={pending} />
       <FlagsPanel data={data} run={run} pending={pending} />
@@ -184,6 +187,131 @@ function ClosePanel({
           </div>
         </>
       )}
+    </Section>
+  );
+}
+
+/** Turns an exact moment into the value a datetime-local box expects. */
+function toLocalInput(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** Reads a datetime-local value back as an exact moment. */
+function toIso(local: string): string | null {
+  if (!local) return null;
+  const d = new Date(local);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+function longTime(iso: string | null): string {
+  if (!iso) return "";
+  return new Date(iso).toLocaleString(undefined, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function SchedulePanel({
+  data,
+  run,
+  pending,
+}: {
+  data: DashboardData;
+  run: RunFn;
+  pending: boolean;
+}) {
+  const [opens, setOpens] = useState(() => toLocalInput(data.opensAt));
+  const [closes, setCloses] = useState(() => toLocalInput(data.closesAt));
+
+  const backwards =
+    opens !== "" && closes !== "" && new Date(closes) <= new Date(opens);
+
+  const state =
+    data.schedule === "before"
+      ? strings.admin.scheduleBefore(longTime(data.opensAt))
+      : data.schedule === "during"
+        ? data.closesAt
+          ? strings.admin.scheduleDuring(longTime(data.closesAt))
+          : strings.admin.scheduleDuringNoEnd
+        : data.schedule === "after"
+          ? strings.admin.scheduleAfter(longTime(data.closesAt))
+          : strings.admin.scheduleNone;
+
+  return (
+    <Section title={strings.admin.scheduleHeading}>
+      <Notice
+        tone={
+          data.schedule === "during"
+            ? "good"
+            : data.schedule === "none"
+              ? "info"
+              : "warn"
+        }
+      >
+        {state}
+      </Notice>
+
+      <p className="mt-3 text-sm text-ink-soft">{strings.admin.scheduleHelp}</p>
+
+      <div className="mt-3 flex flex-wrap gap-4">
+        <label className="flex flex-col gap-1">
+          <span className="text-sm font-semibold text-ink">
+            {strings.admin.scheduleOpens}
+          </span>
+          <input
+            type="datetime-local"
+            value={opens}
+            onChange={(e) => setOpens(e.target.value)}
+            className="rounded-xl border-2 border-line bg-card px-3 py-2 text-base text-ink focus:border-brand"
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-sm font-semibold text-ink">
+            {strings.admin.scheduleCloses}
+          </span>
+          <input
+            type="datetime-local"
+            value={closes}
+            onChange={(e) => setCloses(e.target.value)}
+            className="rounded-xl border-2 border-line bg-card px-3 py-2 text-base text-ink focus:border-brand"
+          />
+        </label>
+      </div>
+
+      {backwards ? (
+        <p className="mt-2 text-sm font-medium text-danger">
+          {strings.admin.scheduleBackwards}
+        </p>
+      ) : null}
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button
+          tone="primary"
+          disabled={pending || backwards || (opens === "" && closes === "")}
+          onClick={() => run(() => setVotingWindow(toIso(opens), toIso(closes)))}
+        >
+          {strings.admin.scheduleSave}
+        </Button>
+        {data.opensAt || data.closesAt ? (
+          <Button
+            disabled={pending}
+            onClick={() => {
+              setOpens("");
+              setCloses("");
+              run(clearVotingWindow);
+            }}
+          >
+            {strings.admin.scheduleClear}
+          </Button>
+        ) : null}
+      </div>
     </Section>
   );
 }

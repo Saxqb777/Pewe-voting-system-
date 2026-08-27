@@ -310,6 +310,10 @@ export type Dashboard = {
   /** The real numbers, so the admin can see what live will use. */
   liveVoterCount: number;
   liveSelections: number;
+  /** Scheduled voting window, as exact moments. */
+  opensAt: string | null;
+  closesAt: string | null;
+  schedule: "none" | "before" | "during" | "after";
   votingOpen: boolean;
   closedAt: string | null;
   turnout: Turnout;
@@ -357,6 +361,9 @@ export async function getDashboard(): Promise<Dashboard> {
     isPracticeSize: settings.isPracticeSize,
     liveVoterCount: config.expectedVoterCount,
     liveSelections: config.selectionsRequired,
+    opensAt: settings.opensAt ? settings.opensAt.toISOString() : null,
+    closesAt: settings.closesAt ? settings.closesAt.toISOString() : null,
+    schedule: settings.schedule,
     votingOpen: settings.votingOpen,
     closedAt: settings.closedAt ? settings.closedAt.toISOString() : null,
     turnout,

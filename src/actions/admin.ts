@@ -131,6 +131,57 @@ export async function resetVote(voterId: string): Promise<ActionResult> {
   return { ok: true, message: `${rows[0].name} can vote again.` };
 }
 
+/**
+ * Sets when voting opens and closes. Either end can be left empty, so a
+ * closing time alone is enough to end the vote unattended.
+ *
+ * Times arrive as exact moments rather than wall clock text, so there is no
+ * question of which time zone was meant.
+ */
+export async function setVotingWindow(
+  opensAtIso: string | null,
+  closesAtIso: string | null,
+): Promise<ActionResult> {
+  if (!(await requireAdmin())) return DENIED;
+  await ensureSchema();
+
+  const opens = opensAtIso ? new Date(opensAtIso) : null;
+  const closes = closesAtIso ? new Date(closesAtIso) : null;
+
+  if (opens && Number.isNaN(opens.getTime())) {
+    return { ok: false, message: "The opening time is not a real date." };
+  }
+  if (closes && Number.isNaN(closes.getTime())) {
+    return { ok: false, message: "The closing time is not a real date." };
+  }
+  if (opens && closes && closes.getTime() <= opens.getTime()) {
+    return {
+      ok: false,
+      message: "The closing time has to be after the opening time.",
+    };
+  }
+
+  await sql`
+    UPDATE settings SET opens_at = ${opens}, closes_at = ${closes} WHERE id = 1
+  `;
+  await audit(
+    "set_voting_window",
+    `opens ${opens ? opens.toISOString() : "not set"}, closes ${closes ? closes.toISOString() : "not set"}`,
+  );
+  revalidatePath("/admin");
+  revalidatePath("/");
+  return { ok: true, message: "Voting times saved." };
+}
+
+export async function clearVotingWindow(): Promise<ActionResult> {
+  if (!(await requireAdmin())) return DENIED;
+  await sql`UPDATE settings SET opens_at = NULL, closes_at = NULL WHERE id = 1`;
+  await audit("clear_voting_window");
+  revalidatePath("/admin");
+  revalidatePath("/");
+  return { ok: true, message: "Voting times removed." };
+}
+
 export async function closeVoting(): Promise<ActionResult> {
   if (!(await requireAdmin())) return DENIED;
   await sql`
@@ -144,8 +195,13 @@ export async function closeVoting(): Promise<ActionResult> {
 
 export async function reopenVoting(): Promise<ActionResult> {
   if (!(await requireAdmin())) return DENIED;
+  // A window whose closing time has passed would slam the door again the
+  // moment it opened, so reopening by hand clears it.
   await sql`
-    UPDATE settings SET voting_open = TRUE, closed_at = NULL WHERE id = 1
+    UPDATE settings SET voting_open = TRUE, closed_at = NULL,
+      closes_at = CASE WHEN closes_at <= NOW() THEN NULL ELSE closes_at END,
+      opens_at = CASE WHEN opens_at > NOW() THEN NULL ELSE opens_at END
+    WHERE id = 1
   `;
   await audit("reopen_voting");
   revalidatePath("/admin");
@@ -382,7 +438,8 @@ export async function resetForLive(
     await tx`
       UPDATE settings SET mode = 'live', voting_open = TRUE,
         closed_at = NULL, election_day = CURRENT_DATE,
-        test_voter_count = NULL, test_selections = NULL
+        test_voter_count = NULL, test_selections = NULL,
+        opens_at = NULL, closes_at = NULL
       WHERE id = 1
     `;
   });
