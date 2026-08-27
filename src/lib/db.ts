@@ -97,124 +97,140 @@ export const sql: postgres.Sql = new Proxy(
  * ballots with a row in voters.
  */
 export async function ensureSchema(): Promise<void> {
-  globalForDb.__schemaReady ??= createSchema();
+  // A failed attempt must not be remembered, or one bad moment would poison
+  // every later request handled by the same instance.
+  if (!globalForDb.__schemaReady) {
+    globalForDb.__schemaReady = createSchema().catch((error) => {
+      globalForDb.__schemaReady = undefined;
+      throw error;
+    });
+  }
   return globalForDb.__schemaReady;
 }
 
+/**
+ * Everything the app needs, as one statement batch.
+ *
+ * Sent in a single round trip rather than a statement at a time. The app and
+ * the database can be far apart, and a cold start that spent a round trip per
+ * table would burn seconds of its budget re-checking tables that already
+ * exist.
+ *
+ * The advisory lock matters because this runs on serverless instances that
+ * start in parallel. Two of them issuing CREATE TABLE IF NOT EXISTS at the
+ * same instant is a known way to get a duplicate key error out of Postgres'
+ * own catalog. The lock is held for the transaction, so it is released
+ * whether this succeeds or fails.
+ */
+const SCHEMA_SQL = `
+SELECT pg_advisory_xact_lock(577134922);
+
+-- Table: voters. The register. Who is entitled to vote and whether they
+-- have. Never contains a choice.
+CREATE TABLE IF NOT EXISTS voters (
+  voter_id            TEXT PRIMARY KEY,
+  name                TEXT NOT NULL,
+  candidate_number    INTEGER NOT NULL UNIQUE,
+  has_voted           BOOLEAN NOT NULL DEFAULT FALSE,
+  voted_at            TIMESTAMPTZ,
+  device_fingerprint  TEXT,
+  ip_address          TEXT,
+  failed_attempts     INTEGER NOT NULL DEFAULT 0,
+  is_locked           BOOLEAN NOT NULL DEFAULT FALSE,
+  -- Random id of the browser session that cast this voter's ballot. Used
+  -- only to make a double tap idempotent. It is not stored anywhere in the
+  -- ballots table, so it links nothing.
+  vote_claim          TEXT
+);
+
+ALTER TABLE voters ADD COLUMN IF NOT EXISTS vote_claim TEXT;
+
+-- Table: ballots. The ballot box. What was chosen. Never contains anything
+-- that identifies a person, a device, a network address or a precise moment
+-- in time.
+--
+-- ballot_id is a random version 4 UUID, not a sequence, so the ids
+-- themselves carry no ordering.
+--
+-- created_at is a DATE, not a timestamp. With 130 voters an hourly bucket
+-- can easily hold a single person, which would identify them by matching
+-- against voters.voted_at. A date cannot.
+CREATE TABLE IF NOT EXISTS ballots (
+  ballot_id   UUID PRIMARY KEY,
+  choices     INTEGER[] NOT NULL,
+  created_at  DATE NOT NULL
+);
+
+-- Table: settings. One row, id fixed at 1.
+CREATE TABLE IF NOT EXISTS settings (
+  id            INTEGER PRIMARY KEY DEFAULT 1,
+  mode          TEXT NOT NULL DEFAULT 'test',
+  voting_open   BOOLEAN NOT NULL DEFAULT TRUE,
+  closed_at     TIMESTAMPTZ,
+  election_day  DATE NOT NULL DEFAULT CURRENT_DATE,
+  CONSTRAINT settings_single_row CHECK (id = 1),
+  CONSTRAINT settings_mode_valid CHECK (mode IN ('test', 'live'))
+);
+
+INSERT INTO settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+
+-- Table: id_attempts. Rate limiting for the ID screen only. Rows are
+-- written when an attempt FAILS. A successful entry is never recorded here,
+-- so this table cannot be used to work out when any particular person voted.
+CREATE TABLE IF NOT EXISTS id_attempts (
+  id          BIGSERIAL PRIMARY KEY,
+  session_id  TEXT NOT NULL,
+  ip_address  TEXT,
+  outcome     TEXT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS id_attempts_session_idx
+  ON id_attempts (session_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS id_attempts_ip_idx
+  ON id_attempts (ip_address, created_at DESC);
+
+-- Table: session_locks. A browser session that made too many wrong ID
+-- attempts. The admin can clear a lock from the dashboard. Holds no voter
+-- id, because a locked session by definition never proved one.
+CREATE TABLE IF NOT EXISTS session_locks (
+  session_id  TEXT PRIMARY KEY,
+  ip_address  TEXT,
+  locked_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  cleared_at  TIMESTAMPTZ
+);
+
+-- Table: audit_log. Admin actions only. Ballot contents are never written
+-- here, and no writer in the codebase passes them.
+CREATE TABLE IF NOT EXISTS audit_log (
+  id          BIGSERIAL PRIMARY KEY,
+  action      TEXT NOT NULL,
+  detail      TEXT NOT NULL DEFAULT '',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+`;
+
 async function createSchema(): Promise<void> {
-  // ---------------------------------------------------------------
-  // Table: voters. The register. Who is entitled to vote and whether
-  // they have. Never contains a choice.
-  // ---------------------------------------------------------------
-  await sql`
-    CREATE TABLE IF NOT EXISTS voters (
-      voter_id            TEXT PRIMARY KEY,
-      name                TEXT NOT NULL,
-      candidate_number    INTEGER NOT NULL UNIQUE,
-      has_voted           BOOLEAN NOT NULL DEFAULT FALSE,
-      voted_at            TIMESTAMPTZ,
-      device_fingerprint  TEXT,
-      ip_address          TEXT,
-      failed_attempts     INTEGER NOT NULL DEFAULT 0,
-      is_locked           BOOLEAN NOT NULL DEFAULT FALSE,
-      -- Random id of the browser session that cast this voter's ballot.
-      -- Used only to make a double tap idempotent. It is not stored anywhere
-      -- in the ballots table, so it links nothing.
-      vote_claim          TEXT
-    )
+  // One round trip to ask whether there is anything to do at all. On a warm
+  // database this is the only query this function ever runs.
+  const [ready] = await sql<{ ready: boolean }[]>`
+    SELECT
+      to_regclass('public.settings') IS NOT NULL
+      AND to_regclass('public.ballots') IS NOT NULL
+      AND to_regclass('public.voters') IS NOT NULL
+      AND to_regclass('public.id_attempts') IS NOT NULL
+      AND to_regclass('public.session_locks') IS NOT NULL
+      AND to_regclass('public.audit_log') IS NOT NULL
+      AND EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'voters'
+          AND column_name = 'vote_claim'
+      ) AS ready
   `;
+  if (ready?.ready) return;
 
-  // Present for databases created before vote_claim existed.
-  await sql`ALTER TABLE voters ADD COLUMN IF NOT EXISTS vote_claim TEXT`;
-
-  // ---------------------------------------------------------------
-  // Table: ballots. The ballot box. What was chosen. Never contains
-  // anything that identifies a person, a device, a network address or
-  // a precise moment in time.
-  //
-  // ballot_id is a random version 4 UUID, not a sequence, so the ids
-  // themselves carry no ordering.
-  //
-  // created_at is a DATE, not a timestamp. With 130 voters an hourly
-  // bucket can easily hold a single person, which would identify them
-  // by matching against voters.voted_at. A date cannot.
-  // ---------------------------------------------------------------
-  await sql`
-    CREATE TABLE IF NOT EXISTS ballots (
-      ballot_id   UUID PRIMARY KEY,
-      choices     INTEGER[] NOT NULL,
-      created_at  DATE NOT NULL
-    )
-  `;
-
-  // ---------------------------------------------------------------
-  // Table: settings. One row, id fixed at 1.
-  // ---------------------------------------------------------------
-  await sql`
-    CREATE TABLE IF NOT EXISTS settings (
-      id            INTEGER PRIMARY KEY DEFAULT 1,
-      mode          TEXT NOT NULL DEFAULT 'test',
-      voting_open   BOOLEAN NOT NULL DEFAULT TRUE,
-      closed_at     TIMESTAMPTZ,
-      election_day  DATE NOT NULL DEFAULT CURRENT_DATE,
-      CONSTRAINT settings_single_row CHECK (id = 1),
-      CONSTRAINT settings_mode_valid CHECK (mode IN ('test', 'live'))
-    )
-  `;
-  await sql`
-    INSERT INTO settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING
-  `;
-
-  // ---------------------------------------------------------------
-  // Table: id_attempts. Rate limiting for the ID screen only.
-  // Rows are written when an attempt FAILS. A successful entry is
-  // never recorded here, so this table cannot be used to work out
-  // when any particular person voted.
-  // ---------------------------------------------------------------
-  await sql`
-    CREATE TABLE IF NOT EXISTS id_attempts (
-      id          BIGSERIAL PRIMARY KEY,
-      session_id  TEXT NOT NULL,
-      ip_address  TEXT,
-      outcome     TEXT NOT NULL,
-      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `;
-  await sql`
-    CREATE INDEX IF NOT EXISTS id_attempts_session_idx
-      ON id_attempts (session_id, created_at DESC)
-  `;
-  await sql`
-    CREATE INDEX IF NOT EXISTS id_attempts_ip_idx
-      ON id_attempts (ip_address, created_at DESC)
-  `;
-
-  // ---------------------------------------------------------------
-  // Table: session_locks. A browser session that made too many wrong ID
-  // attempts. The admin can clear a lock from the dashboard. Holds no
-  // voter id, because a locked session by definition never proved one.
-  // ---------------------------------------------------------------
-  await sql`
-    CREATE TABLE IF NOT EXISTS session_locks (
-      session_id  TEXT PRIMARY KEY,
-      ip_address  TEXT,
-      locked_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      cleared_at  TIMESTAMPTZ
-    )
-  `;
-
-  // ---------------------------------------------------------------
-  // Table: audit_log. Admin actions only. Ballot contents are never
-  // written here, and no writer in the codebase passes them.
-  // ---------------------------------------------------------------
-  await sql`
-    CREATE TABLE IF NOT EXISTS audit_log (
-      id          BIGSERIAL PRIMARY KEY,
-      action      TEXT NOT NULL,
-      detail      TEXT NOT NULL DEFAULT '',
-      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `;
+  await sql.unsafe(SCHEMA_SQL).simple();
 }
 
 /**

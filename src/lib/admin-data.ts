@@ -48,7 +48,7 @@ export type Flags = {
 export async function getFlags(): Promise<Flags> {
   await ensureSchema();
 
-  const deviceRows = await sql<
+  const deviceQuery = sql<
     { device_fingerprint: string; voter_id: string; name: string }[]
   >`
     SELECT device_fingerprint, voter_id, name FROM voters
@@ -61,7 +61,7 @@ export async function getFlags(): Promise<Flags> {
     ORDER BY device_fingerprint, name
   `;
 
-  const ipRows = await sql<
+  const ipQuery = sql<
     { ip_address: string; voter_id: string; name: string }[]
   >`
     SELECT ip_address, voter_id, name FROM voters
@@ -74,7 +74,7 @@ export async function getFlags(): Promise<Flags> {
     ORDER BY ip_address, name
   `;
 
-  const failedRows = await sql<
+  const failedQuery = sql<
     { voter_id: string; name: string; failed_attempts: number }[]
   >`
     SELECT voter_id, name, failed_attempts FROM voters
@@ -82,16 +82,32 @@ export async function getFlags(): Promise<Flags> {
     ORDER BY failed_attempts DESC, name
   `;
 
-  const lockedVoterRows = await sql<{ voter_id: string; name: string }[]>`
+  const lockedVoterQuery = sql<{ voter_id: string; name: string }[]>`
     SELECT voter_id, name FROM voters WHERE is_locked ORDER BY name
   `;
 
-  const lockedSessionRows = await sql<
+  const lockedSessionQuery = sql<
     { session_id: string; ip_address: string | null; locked_at: Date }[]
   >`
     SELECT session_id, ip_address, locked_at FROM session_locks
     WHERE cleared_at IS NULL ORDER BY locked_at DESC
   `;
+
+  // Sent together rather than one after another. The app and the database can
+  // be far apart, and five round trips in a row is five times the wait.
+  const [
+    deviceRows,
+    ipRows,
+    failedRows,
+    lockedVoterRows,
+    lockedSessionRows,
+  ] = await Promise.all([
+    deviceQuery,
+    ipQuery,
+    failedQuery,
+    lockedVoterQuery,
+    lockedSessionQuery,
+  ]);
 
   return {
     sharedDevices: group(deviceRows, (r) => r.device_fingerprint).map(
@@ -303,14 +319,7 @@ export type Dashboard = {
 
 export async function getDashboard(): Promise<Dashboard> {
   await ensureSchema();
-  const [settings, turnout, flags, auditRows] = await Promise.all([
-    getSettings(),
-    getTurnout(),
-    getFlags(),
-    getAudit(40),
-  ]);
-
-  const voterRows = await sql<
+  const voterQuery = sql<
     {
       voter_id: string;
       name: string;
@@ -325,6 +334,14 @@ export async function getDashboard(): Promise<Dashboard> {
            is_locked, failed_attempts
     FROM voters ORDER BY name
   `;
+
+  const [settings, turnout, flags, auditRows, voterRows] = await Promise.all([
+    getSettings(),
+    getTurnout(),
+    getFlags(),
+    getAudit(40),
+    voterQuery,
+  ]);
 
   return {
     mode: settings.mode,
