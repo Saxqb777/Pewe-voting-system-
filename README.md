@@ -2,10 +2,10 @@
 
 A private, single link voting app for one village election.
 
-- 130 voters, each selecting exactly 16 names from the same list of 130
+- 138 voters, each selecting exactly 16 names from the same list of 138
 - Every voter is also a candidate
 - One link, shared in WhatsApp. No accounts, no passwords, no OTP, no signup
-- After voting closes, all 130 are ranked and the top 16 are the winners
+- After voting closes, all 138 are ranked and the top 16 are the winners
 - Nobody, including the admin, can ever see who voted for whom
 
 ---
@@ -23,7 +23,7 @@ to vote, and have they voted yet.
 | --- | --- |
 | `voter_id` | their private ID |
 | `name` | their name |
-| `candidate_number` | 1 to 130, their number on the ballot |
+| `candidate_number` | 1 to 138, their number on the ballot |
 | `has_voted` | true or false |
 | `voted_at` | rounded down to the hour, never more precise |
 | `device_fingerprint` | for admin flagging only |
@@ -57,13 +57,13 @@ join key. Nothing in `ballots` appears anywhere in `voters`, and nothing in
    in the order they were written, and `SELECT * FROM ballots` with no
    `ORDER BY` returns them that way. So on every single submit the app rewrites
    the entire ballot box in a fresh random order inside the same transaction.
-   There are at most 130 rows, so this costs nothing. After it runs, the raw
+   There are only as many rows as there are voters, so this costs nothing. After it runs, the raw
    storage order carries no information at all. `npm run test:ballot-box`
    measures this: it casts 100 ballots in a known order, reads them back by
    physical position, and checks the rank correlation with arrival order is
    near zero.
 
-4. **Timestamps.** With 130 voters an hourly bucket can easily hold exactly one
+4. **Timestamps.** With this few voters an hourly bucket can easily hold exactly one
    person. If a ballot and a voter shared a lone hour, that would name them. So
    `ballots.created_at` is a DATE with no time of day, while `voters.voted_at`
    keeps the hour for the admin's use. The two cannot be lined up.
@@ -123,7 +123,7 @@ Copy `.env.example` to `.env.local` and fill it in.
 | `DATABASE_URL` | Postgres connection string. Use the pooled one from Neon |
 | `ADMIN_PASSWORD` | the single admin password |
 | `SESSION_SECRET` | random 64 character hex string, signs the session cookies |
-| `EXPECTED_VOTER_COUNT` | how many voters the list must contain. Default 130 |
+| `EXPECTED_VOTER_COUNT` | how many voters the list must contain. Default 138. Change it here if the village list changes size |
 | `SELECTIONS_REQUIRED` | how many names each voter must pick. Default 16 |
 
 Generate a session secret with:
@@ -137,7 +137,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```bash
 npm install
 npm run dev          # http://localhost:3000
-npm run seed         # optional, fills the register with 130 dummy voters
+npm run seed         # optional, fills the register with dummy voters
 ```
 
 The schema creates itself on first use, so there is no migration step.
@@ -148,7 +148,7 @@ The schema creates itself on first use, so there is no migration step.
 | --- | --- |
 | `npm run dev` | run locally |
 | `npm run build` | production build |
-| `npm run seed` | load 130 dummy voters. Refuses in live mode |
+| `npm run seed` | load dummy voters. Refuses in live mode |
 | `npm run test` | roster, ballot box and anonymity checks |
 | `npm run verify:anonymity` | read only structural proof, safe on the live database |
 
@@ -175,8 +175,8 @@ The system makes a six digit Voter ID for each person, then offers you
 The IDs are drawn with a cryptographic random number generator, not
 `Math.random`, and they are deliberately unrelated to the order of the list.
 Knowing one person's ID tells you nothing about the next one. Six digits gives
-900000 possibilities for 130 people, so a stranger guessing has about a one in
-6900 chance per try, against a limit of five wrong tries per phone.
+900000 possibilities for 138 people, so a stranger guessing has about a one in
+6500 chance per try, against a limit of five wrong tries per phone.
 
 **Hand each person only their own ID, one to one.** The voting link is public
 by design. The ID is the only thing standing between a stranger and somebody
@@ -201,14 +201,14 @@ A name containing a comma should be wrapped in double quotes.
 The loader refuses the whole list unless every check passes, and tells you
 which row is wrong:
 
-- exactly 130 rows
+- exactly as many rows as `EXPECTED_VOTER_COUNT`, 138 by default
 - no duplicate Voter ID
 - no blank name
 - no blank Voter ID
 - the right number of columns for the mode you picked
 
 A running count under the box shows how many rows you have pasted, so you can
-see you are at 130 before you load.
+see you are at the right number before you load.
 
 Candidate numbers are given out in the order of your list, so sort it the way
 you want the ballot to read. If two people share a name you are warned, and the

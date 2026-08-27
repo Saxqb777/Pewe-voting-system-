@@ -34,7 +34,7 @@ export const config = {
   },
   /** Exactly this many rows must be present for a roster to load. */
   get expectedVoterCount() {
-    return intOr("EXPECTED_VOTER_COUNT", 130);
+    return intOr("EXPECTED_VOTER_COUNT", 138);
   },
   /** A ballot is valid only when it carries exactly this many choices. */
   get selectionsRequired() {

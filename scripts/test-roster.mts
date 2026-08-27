@@ -126,6 +126,36 @@ if (sameName.ok) {
 const empty = parseRoster("", 130, normaliseVoterId);
 check("an empty box is refused", !empty.ok);
 
+// ------------------------------------- lists copied out of a chat carry markers
+const marked = [
+  ["numbered with a dot", "1. Amina Khan"],
+  ["numbered with a bracket", "1) Amina Khan"],
+  ["numbered with a dash", "1 - Amina Khan"],
+  ["numbered with a colon", "1: Amina Khan"],
+  ["a three digit number", "138. Amina Khan"],
+  ["a hyphen bullet", "- Amina Khan"],
+  ["a dot bullet", "\u2022 Amina Khan"],
+  ["an asterisk bullet", "* Amina Khan"],
+  ["an en dash bullet", "\u2013 Amina Khan"],
+] as [string, string][];
+
+for (const [label, line] of marked) {
+  const parsed = parseNameList(`${line}\n${names(129, 2)}`, 130);
+  const got = parsed.ok ? parsed.names[0] : "refused";
+  check(`a list ${label} keeps just the name`, got === "Amina Khan", got);
+}
+
+// A bare number is still not a name.
+check("a line of only digits is still refused", !parseNameList(`42\n${names(129, 2)}`, 130).ok);
+// A name that merely contains a digit is untouched.
+const withDigit = parseNameList(`Amina Khan 2nd\n${names(129, 2)}`, 130);
+check("a digit inside a name is left alone", withDigit.ok && withDigit.names[0] === "Amina Khan 2nd",
+  withDigit.ok ? withDigit.names[0] : "refused");
+// A hyphenated name must not lose its first part.
+const hyphenated = parseNameList(`Anne-Marie Khan\n${names(129, 2)}`, 130);
+check("a hyphenated name survives", hyphenated.ok && hyphenated.names[0] === "Anne-Marie Khan",
+  hyphenated.ok ? hyphenated.names[0] : "refused");
+
 // ------------------------------------------------ names only, IDs made for you
 function names(n: number, start = 1): string {
   return Array.from({ length: n }, (_, i) => `Person ${start + i}`).join("\n");

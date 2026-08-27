@@ -125,6 +125,20 @@ export function duplicateNames(rows: RosterRow[]): string[] {
     .filter((n, i, all) => all.indexOf(n) === i);
 }
 
+/**
+ * Removes the numbering or bullet that a list copied out of a chat carries.
+ * "1. Amina Khan", "12) Amina Khan" and "- Amina Khan" all become the name.
+ *
+ * Only a marker followed by a separator is removed, so a line that is just a
+ * number is left alone and still refused as not being a name.
+ */
+function stripListMarker(line: string): string {
+  return line
+    .replace(/^\s*\d{1,3}\s*[.)\]:\-]\s+/, "")
+    .replace(/^\s*[-\u2013\u2014*\u2022\u00b7]\s+/, "")
+    .trim();
+}
+
 export type NameListParse =
   | { ok: true; names: string[] }
   | { ok: false; error: string };
@@ -151,7 +165,7 @@ export function parseNameList(
   for (let i = start; i < lines.length; i++) {
     const rowNumber = names.length + 1;
     // Tolerate a trailing comma or a stray empty second column.
-    const cells = lines[i]
+    const cells = stripListMarker(lines[i])
       .split(/[,;\t]/)
       .map((c) => c.trim().replace(/^"|"$/g, ""))
       .filter((c) => c.length > 0);
