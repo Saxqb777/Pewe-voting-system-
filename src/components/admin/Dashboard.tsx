@@ -233,6 +233,10 @@ function SchedulePanel({
   const backwards =
     opens !== "" && closes !== "" && new Date(closes) <= new Date(opens);
 
+  // The button is dead until there is something to save. Say so, rather than
+  // leaving somebody to work out why it will not press.
+  const nothingToSave = opens === "" && closes === "";
+
   const state =
     data.schedule === "before"
       ? strings.admin.scheduleBefore(longTime(data.opensAt))
@@ -289,12 +293,16 @@ function SchedulePanel({
         <p className="mt-2 text-sm font-medium text-danger">
           {strings.admin.scheduleBackwards}
         </p>
+      ) : nothingToSave ? (
+        <p className="mt-2 text-sm text-ink-soft">
+          {strings.admin.scheduleNeedOne}
+        </p>
       ) : null}
 
       <div className="mt-3 flex flex-wrap gap-2">
         <Button
           tone="primary"
-          disabled={pending || backwards || (opens === "" && closes === "")}
+          disabled={pending || backwards || nothingToSave}
           onClick={() => run(() => setVotingWindow(toIso(opens), toIso(closes)))}
         >
           {strings.admin.scheduleSave}

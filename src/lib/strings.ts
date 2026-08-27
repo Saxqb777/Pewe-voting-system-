@@ -164,6 +164,7 @@ export const strings = {
     scheduleDuringNoEnd: "Voting is open, with no closing time set.",
     scheduleAfter: (when: string) => `Voting closed on ${when}.`,
     scheduleBackwards: "The closing time has to be after the opening time.",
+    scheduleNeedOne: "Fill in at least one of the two boxes above to save.",
     schedulePast: "That closing time has already passed.",
 
     practiceHeading: "Practice run size",
