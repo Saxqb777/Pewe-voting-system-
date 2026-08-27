@@ -43,8 +43,16 @@ export const config = {
 /** Wrong ID attempts allowed from one browser session before it is locked. */
 export const MAX_SESSION_ATTEMPTS = 5;
 
-/** Wrong ID attempts allowed from one IP address in the rolling window. */
-export const MAX_IP_ATTEMPTS = 20;
+/**
+ * Wrong ID attempts allowed from one IP address in the rolling window.
+ *
+ * Set generously on purpose. In a village many phones share one mobile
+ * network address, so a low limit would lock out honest voters who simply
+ * mistyped. The five wrong tries per phone limit is the real brake. This one
+ * only stops somebody working through the ID space, which would take well
+ * over a hundred hours at this rate.
+ */
+export const MAX_IP_ATTEMPTS = 50;
 
 /** Rolling window for the IP limit, in minutes. */
 export const IP_ATTEMPT_WINDOW_MINUTES = 60;
