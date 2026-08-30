@@ -28,6 +28,7 @@ import {
   type ActionResult,
 } from "@/actions/admin";
 import { Button, Notice, Section } from "./ui";
+import { RegistrationPanel } from "./RegistrationPanel";
 import { ElectionStatus } from "./ElectionStatus";
 import { NextSteps } from "./NextSteps";
 
@@ -99,6 +100,13 @@ export function Dashboard({ initial }: { initial: DashboardData }) {
 
       <ElectionStatus data={data} />
       <NextSteps data={data} run={run} pending={pending} />
+      <RegistrationPanel
+        data={data}
+        run={run}
+        pending={pending}
+        defaultOpensAt={data.defaultOpensAt}
+        defaultClosesAt={data.defaultClosesAt}
+      />
       <TurnoutPanel data={data} />
       <PendingPanel voters={pendingVoters} total={data.turnout.total} />
       <VoterToolsPanel data={data} run={run} pending={pending} />

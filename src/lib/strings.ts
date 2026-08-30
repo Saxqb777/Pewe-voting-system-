@@ -40,6 +40,44 @@ export const strings = {
     amen: "Aameen.",
   },
 
+  /**
+   * Registration. The one screen where a mistake sticks: the name typed here
+   * is the name every voter reads on the ballot. The two instructions that
+   * matter carry a Hindi line as well, the same way the guide does.
+   */
+  register: {
+    title: "Register to vote",
+    lead: "Put in your full name and your phone number. Your voting code appears on this screen straight away.",
+    leadHi: "Apna poora naam aur phone number likhiye. Aapka voting code isi screen par turant aa jayega.",
+    nameLabel: "Your full name",
+    namePlaceholder: "Your full name",
+    nameHelp: "Every voter will see this name on the ballot, so please write it in full and properly.",
+    nameHelpHi: "Yahi naam sabhi voters ko ballot par dikhega, isliye poora aur sahi likhiye.",
+    phoneLabel: "Your phone number",
+    phonePlaceholder: "Your WhatsApp number",
+    phoneHelp: "Use the same number the society has for you.",
+    submit: "Register",
+    working: "Please wait",
+    badName: "Please write your full name.",
+    badNumber: "That does not look like a phone number. Please check it and try again.",
+    already:
+      "This number has already registered. If you have lost your code, please contact the election admin.",
+    closed: "Registration has closed. The list of voters is now fixed.",
+    tooMany: "Too many registrations from this connection. Please try again in a little while.",
+
+    doneTitle: "You are registered",
+    codeLabel: "Your voting code",
+    codeWarning:
+      "Take a screenshot or write this down now. It is shown once only and cannot be shown again.",
+    codeWarningHi:
+      "Abhi screenshot le lijiye ya likh lijiye. Yeh sirf ek baar dikhta hai, dobara nahi dikhega.",
+    doneNext: "On election day, open this same link and enter this code.",
+
+    pendingTitle: "Sent to the admin",
+    pendingLead:
+      "Your number is not on the society's list, so the election admin has to approve you first. You will be told once that is done.",
+  },
+
   entry: {
     title: "PSWS General Election for Pewe 2026",
     subtitle: "Enter your Voter ID to begin",
@@ -245,6 +283,47 @@ export const strings = {
       `Full size: ${people} people, choosing ${picks} names each.`,
     practiceNote:
       "This only applies while the app is in test mode. Switching to live puts it back to the real numbers.",
+
+    // ---------------------------------------------------------------
+    // Registration. People put their own names in, and the admin watches
+    // them arrive and then fixes the list for good.
+    // ---------------------------------------------------------------
+    regHeading: "Registration",
+    regNotStarted:
+      "People are not registering yet. Load the list of numbers allowed to register, then open it.",
+    regAllowedLabel: "Numbers allowed to register",
+    regAllowedHelp:
+      "One per line. A name in front of the number is kept but not required. Anyone whose number is not here can still register, but you have to approve them.",
+    regAllowedLoad: "Save this list",
+    regAllowedCount: (n: number) => `${n} numbers can register.`,
+    regOpenHeading: "Open registration",
+    regOpenWarning: (phrase: string) =>
+      `This clears the current voter list and lets people put their own names in. Type ${phrase} to confirm.`,
+    regOpenButton: "Open registration",
+    regOpenPlaceholder: "OPEN REGISTRATION",
+
+    regLiveCount: (n: number) =>
+      `${n} ${n === 1 ? "person has" : "people have"} registered.`,
+    regWaitingHeading: (n: number) => `Waiting for you to approve (${n})`,
+    regWaitingHelp:
+      "These numbers are not on the list you loaded. Approve anyone you recognise and reject the rest.",
+    regApprove: "Approve",
+    regReject: "Reject",
+    regRegisteredHeading: (n: number) => `On the roster (${n})`,
+    regRegisteredHelp:
+      "Their code is shown here so you can read it back to anyone who loses theirs.",
+    regMissingHeading: (n: number) => `Not registered yet (${n})`,
+    regMissingHelp: "Chase these numbers before you confirm.",
+    regNobodyMissing: "Everybody on the list has registered.",
+
+    regConfirmHeading: "Fix the list and set the dates",
+    regConfirmHelp: (opens: string, closes: string) =>
+      `Confirming closes registration for good, numbers the candidates in name order, and sets voting to open on ${opens} and close on ${closes}. You can still change those times below.`,
+    regConfirmButton: "Confirm the voter list",
+    regConfirmBlocked:
+      "Confirming is not possible once there are ballots in the ballot box.",
+    regLocked: (n: number) =>
+      `The voter list is fixed at ${n} people. Registration cannot be reopened without clearing the election.`,
 
     rosterHeading: "Voter list",
     rosterModeNames: "I have names only. Make the Voter IDs for me",

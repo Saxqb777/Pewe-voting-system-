@@ -4,3 +4,6 @@ export const LIVE_OVERRIDE_PHRASE = "DELETE THE REAL ELECTION";
 
 /** Phrase required to wipe votes while the election is live. */
 export const RESTART_PHRASE = "START AGAIN";
+
+/** Phrase required to clear the roster and let people register themselves. */
+export const REGISTRATION_PHRASE = "OPEN REGISTRATION";

@@ -314,7 +314,33 @@ export type VoterRow = {
   failedAttempts: number;
 };
 
+/** One person who has put themselves on the register. */
+export type Registration = {
+  voterId: string;
+  name: string;
+  phone: string;
+  registeredAt: string | null;
+  /** The name the society already had for this number, if it had one. */
+  knownName: string;
+};
+
+export type RegistrationState = {
+  /** True while people may still register. */
+  open: boolean;
+  /** True once the roster has been confirmed and fixed. */
+  locked: boolean;
+  /** How many numbers are allowed to register at all. */
+  allowedCount: number;
+  /** Registered and on the roster. */
+  approved: Registration[];
+  /** Registered from a number nobody recognises, waiting on the admin. */
+  pending: Registration[];
+  /** Allowed numbers that have not registered yet. */
+  missing: { phone: string; knownName: string }[];
+};
+
 export type Dashboard = {
+  registration: RegistrationState;
   mode: "test" | "live";
   /** How many voters a roster must contain before it is accepted. */
   expectedVoterCount: number;
@@ -328,6 +354,9 @@ export type Dashboard = {
   /** Scheduled voting window, as exact moments. */
   opensAt: string | null;
   closesAt: string | null;
+  /** The dates confirming the roster will set, unless they are overridden. */
+  defaultOpensAt: string;
+  defaultClosesAt: string;
   schedule: "none" | "before" | "during" | "after";
   /** True once the election is over and results may be read. */
   votingEnded: boolean;
@@ -348,6 +377,58 @@ export type Dashboard = {
   countries: CountryCount[];
 };
 
+/**
+ * Who has registered, who is waiting, and who has not turned up yet.
+ *
+ * Read straight from the register. It holds names and numbers and never a
+ * choice, so none of this can be joined to a ballot.
+ */
+export async function getRegistrationState(): Promise<RegistrationState> {
+  await ensureSchema();
+
+  const [settings, people, allowed] = await Promise.all([
+    getSettings(),
+    sql<
+      {
+        voter_id: string;
+        name: string;
+        phone: string | null;
+        status: string;
+        registered_at: Date | null;
+      }[]
+    >`
+      SELECT voter_id, name, phone, status, registered_at
+      FROM voters WHERE phone IS NOT NULL
+      ORDER BY registered_at DESC NULLS LAST, LOWER(name)
+    `,
+    sql<{ phone: string; known_name: string }[]>`
+      SELECT phone, known_name FROM allowed_numbers ORDER BY known_name, phone
+    `,
+  ]);
+
+  const known = new Map(allowed.map((a) => [a.phone, a.known_name]));
+  const shape = (r: (typeof people)[number]): Registration => ({
+    voterId: r.voter_id,
+    name: r.name,
+    phone: r.phone ?? "",
+    registeredAt: r.registered_at ? r.registered_at.toISOString() : null,
+    knownName: known.get(r.phone ?? "") ?? "",
+  });
+
+  const registered = new Set(people.map((p) => p.phone ?? ""));
+
+  return {
+    open: settings.registrationOpen,
+    locked: settings.rosterLocked,
+    allowedCount: allowed.length,
+    approved: people.filter((p) => p.status === "approved").map(shape),
+    pending: people.filter((p) => p.status === "pending").map(shape),
+    missing: allowed
+      .filter((a) => !registered.has(a.phone))
+      .map((a) => ({ phone: a.phone, knownName: a.known_name })),
+  };
+}
+
 export async function getDashboard(): Promise<Dashboard> {
   await ensureSchema();
   const voterQuery = sql<
@@ -366,7 +447,7 @@ export async function getDashboard(): Promise<Dashboard> {
     FROM voters ORDER BY name
   `;
 
-  const [settings, turnout, flags, auditRows, voterRows, countries] =
+  const [settings, turnout, flags, auditRows, voterRows, countries, registration] =
     await Promise.all([
       getSettings(),
       getTurnout(),
@@ -374,9 +455,11 @@ export async function getDashboard(): Promise<Dashboard> {
       getAudit(40),
       voterQuery,
       getCountryCounts(),
+      getRegistrationState(),
     ]);
 
   return {
+    registration,
     mode: settings.mode,
     expectedVoterCount: settings.expectedVoterCount,
     selectionsRequired: settings.selectionsRequired,
@@ -385,6 +468,8 @@ export async function getDashboard(): Promise<Dashboard> {
     liveSelections: config.selectionsRequired,
     opensAt: settings.opensAt ? settings.opensAt.toISOString() : null,
     closesAt: settings.closesAt ? settings.closesAt.toISOString() : null,
+    defaultOpensAt: config.electionOpensAt.toISOString(),
+    defaultClosesAt: config.electionClosesAt.toISOString(),
     schedule: settings.schedule,
     votingEnded: settings.votingEnded,
     hasStarted: settings.hasStarted,

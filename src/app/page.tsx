@@ -8,6 +8,7 @@ import { VotingWindowNotice } from "@/components/VotingWindowNotice";
 import { OpensAtNotice } from "@/components/OpensAtNotice";
 import { Brand, ContactLine } from "@/components/Brand";
 import { SocietyNote } from "@/components/SocietyNote";
+import { RegisterForm } from "@/components/RegisterForm";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,32 @@ export default async function EntryPage() {
   // Three states, in the order a voter meets them. Judging by the clock alone
   // would have told voters it had not opened while the admin had already
   // pressed Start, since the schedule still said before.
+  // Registration comes first. While it is open the ballot does not exist yet,
+  // so the code box would have nothing to check against.
+  if (settings.registrationOpen) {
+    return (
+      <Screen mode={settings.mode}>
+        <header className="mb-6 text-center">
+          <Brand />
+          <h1 className="mt-4 text-2xl font-bold tracking-tight text-balance text-ink">
+            {strings.entry.title}
+          </h1>
+          <p className="mt-2 text-lg text-ink-soft">{strings.register.title}</p>
+        </header>
+
+        <p className="mb-6 rounded-xl bg-brand-soft px-4 py-3 text-base text-brand-dark">
+          {strings.register.lead}
+          <span className="mt-1 block">{strings.register.leadHi}</span>
+        </p>
+
+        <RegisterForm />
+
+        <SocietyNote />
+        <ContactLine />
+      </Screen>
+    );
+  }
+
   if (settings.votingEnded) {
     return (
       <Screen mode={settings.mode}>
