@@ -715,7 +715,9 @@ function RosterPanel({
           </fieldset>
 
           <p className="mt-3 text-sm text-ink-soft">
-            {makeIds ? strings.admin.rosterNamesHelp : strings.admin.rosterHelp}
+            {makeIds
+              ? strings.admin.rosterNamesHelp(data.expectedVoterCount)
+              : strings.admin.rosterHelp}
           </p>
           <textarea
             value={text}

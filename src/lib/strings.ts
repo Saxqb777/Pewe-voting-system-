@@ -234,8 +234,8 @@ export const strings = {
     rosterHeading: "Voter list",
     rosterModeNames: "I have names only. Make the Voter IDs for me",
     rosterModeIds: "I already have a Voter ID for each person",
-    rosterNamesHelp:
-      "Paste one name per line, all 130 of them. The system will make a private Voter ID for each person.",
+    rosterNamesHelp: (expected: number) =>
+      `Paste one name per line, all ${expected} of them. The system will make a private Voter ID for each person.`,
     rosterHelp:
       "Paste one row per voter as: Voter ID, then a comma, then the name. A header row is allowed.",
     rosterRowCount: (found: number, expected: number) =>
