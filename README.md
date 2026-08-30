@@ -2,10 +2,10 @@
 
 A private, single link voting app for the PEWE village election.
 
-- 138 voters, each selecting exactly 16 names from the same list of 138
+- 138 voters, each selecting exactly 17 names from the same list of 138
 - Every voter is also a candidate
 - One link, shared in WhatsApp. No accounts, no passwords, no OTP, no signup
-- After voting closes, all 138 are ranked and the top 16 are the winners
+- After voting closes, all 138 are ranked and the top 17 are the winners
 - Nobody, including the admin, can ever see who voted for whom
 
 ---
@@ -124,7 +124,7 @@ Copy `.env.example` to `.env.local` and fill it in.
 | `ADMIN_PASSWORD` | the single admin password |
 | `SESSION_SECRET` | random 64 character hex string, signs the session cookies |
 | `EXPECTED_VOTER_COUNT` | how many voters the list must contain. Default 138. Change it here if the village list changes size |
-| `SELECTIONS_REQUIRED` | how many names each voter must pick. Default 16 |
+| `SELECTIONS_REQUIRED` | how many names each voter must pick. Default 17 |
 
 Generate a session secret with:
 

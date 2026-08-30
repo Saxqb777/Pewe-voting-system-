@@ -38,7 +38,7 @@ export const config = {
   },
   /** A ballot is valid only when it carries exactly this many choices. */
   get selectionsRequired() {
-    return intOr("SELECTIONS_REQUIRED", 16);
+    return intOr("SELECTIONS_REQUIRED", 17);
   },
 } as const;
 
@@ -136,7 +136,7 @@ export function checkConfig(): ConfigProblem[] {
   }
 
   const voters = Number.parseInt(process.env.EXPECTED_VOTER_COUNT ?? "138", 10);
-  const picks = Number.parseInt(process.env.SELECTIONS_REQUIRED ?? "16", 10);
+  const picks = Number.parseInt(process.env.SELECTIONS_REQUIRED ?? "17", 10);
   if (Number.isFinite(voters) && Number.isFinite(picks) && picks >= voters) {
     problems.push({
       variable: "SELECTIONS_REQUIRED",
