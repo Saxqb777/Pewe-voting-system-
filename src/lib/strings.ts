@@ -9,7 +9,7 @@
 export const strings = {
   common: {
     orgName: "Pewe Social Welfare Society",
-    registration: "Registration No. F/3584/RTG",
+    registration: "Registration No. F/3584/RTG and MH/5602/RTG",
     appName: "PSWS General Election for Pewe 2026",
     contactLead: "For any questions, please contact",
     contactName: "Nisar PSWS",
