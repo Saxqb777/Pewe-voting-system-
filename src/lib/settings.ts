@@ -46,6 +46,14 @@ export type Settings = {
    * vote that has not begun cannot show a result.
    */
   votingEnded: boolean;
+
+  /** True while people may still put their own name and number in. */
+  registrationOpen: boolean;
+  /**
+   * True once the admin has confirmed the roster. From that moment the list
+   * of voters and candidates is fixed and registration can never reopen.
+   */
+  rosterLocked: boolean;
 };
 
 export async function getSettings(): Promise<Settings> {
@@ -61,10 +69,13 @@ export async function getSettings(): Promise<Settings> {
       opens_at: Date | null;
       closes_at: Date | null;
       started_at: Date | null;
+      registration_open: boolean;
+      roster_locked: boolean;
     }[]
   >`
     SELECT mode, voting_open, closed_at, election_day,
-           test_voter_count, test_selections, opens_at, closes_at, started_at
+           test_voter_count, test_selections, opens_at, closes_at, started_at,
+           registration_open, roster_locked
     FROM settings WHERE id = 1
   `;
   const row = rows[0];
@@ -88,6 +99,8 @@ export async function getSettings(): Promise<Settings> {
       hasStarted: false,
       startedAt: null,
       votingEnded: false,
+      registrationOpen: false,
+      rosterLocked: false,
     };
   }
 
@@ -133,5 +146,7 @@ export async function getSettings(): Promise<Settings> {
     selectionsRequired: practising ? row.test_selections! : live.selectionsRequired,
     expectedVoterCount: practising ? row.test_voter_count! : live.expectedVoterCount,
     isPracticeSize: practising,
+    registrationOpen: row.registration_open === true && row.roster_locked !== true,
+    rosterLocked: row.roster_locked === true,
   };
 }

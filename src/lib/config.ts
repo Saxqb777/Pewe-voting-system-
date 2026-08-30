@@ -15,6 +15,16 @@ function required(name: string): string {
   return value;
 }
 
+/**
+ * Reads an exact moment from the environment. Anything unparseable falls back,
+ * so a typo in a setting can never leave the election with no dates at all.
+ */
+function momentOr(name: string, fallback: string): Date {
+  const raw = process.env[name]?.trim();
+  const parsed = raw ? new Date(raw) : new Date(NaN);
+  return Number.isNaN(parsed.getTime()) ? new Date(fallback) : parsed;
+}
+
 function intOr(name: string, fallback: number): number {
   const raw = process.env[name];
   if (!raw) return fallback;
@@ -50,6 +60,20 @@ export const config = {
     // address, so this never falls back to empty. Override it with
     // NEXT_PUBLIC_SITE_URL if the site ever moves.
     return "https://pewe-voting-system.vercel.app";
+  },
+  /**
+   * When voting opens and closes, applied the moment the roster is confirmed
+   * so nobody has to set it by hand on the night.
+   *
+   * Held as exact moments. The village votes on India time, so these are
+   * Friday 4 September 08:00 and Saturday 5 September 18:00 in Kolkata,
+   * written here in UTC. The admin schedule panel overrides both.
+   */
+  get electionOpensAt() {
+    return momentOr("ELECTION_OPENS_AT", "2026-09-04T02:30:00.000Z");
+  },
+  get electionClosesAt() {
+    return momentOr("ELECTION_CLOSES_AT", "2026-09-05T12:30:00.000Z");
   },
   /** A ballot is valid only when it carries exactly this many choices. */
   get selectionsRequired() {

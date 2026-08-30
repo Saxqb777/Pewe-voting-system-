@@ -153,6 +153,29 @@ CREATE TABLE IF NOT EXISTS voters (
 ALTER TABLE voters ADD COLUMN IF NOT EXISTS vote_claim TEXT;
 ALTER TABLE voters ADD COLUMN IF NOT EXISTS country TEXT;
 
+-- The number this person registered with, and whether they are on the
+-- roster yet. A number on the allow list is approved the moment it
+-- registers. Anything else waits for the admin.
+--
+-- The number sits here beside the name, on the register, never on a ballot.
+ALTER TABLE voters ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE voters ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'approved';
+ALTER TABLE voters ADD COLUMN IF NOT EXISTS registered_at TIMESTAMPTZ;
+
+-- One registration per number. Rows loaded the old way carry no number at
+-- all, so the index only covers the ones that do.
+CREATE UNIQUE INDEX IF NOT EXISTS voters_phone_key
+  ON voters (phone) WHERE phone IS NOT NULL;
+CREATE INDEX IF NOT EXISTS voters_status_idx ON voters (status);
+
+-- Table: allowed_numbers. The numbers entitled to register without the
+-- admin being asked. Holds no vote and no code, only who may join.
+CREATE TABLE IF NOT EXISTS allowed_numbers (
+  phone       TEXT PRIMARY KEY,
+  known_name  TEXT NOT NULL DEFAULT '',
+  added_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Table: ballots. The ballot box. What was chosen. Never contains anything
 -- that identifies a person, a device, a network address or a precise moment
 -- in time.
@@ -197,6 +220,10 @@ ALTER TABLE settings ADD COLUMN IF NOT EXISTS test_selections INTEGER;
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS opens_at TIMESTAMPTZ;
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS closes_at TIMESTAMPTZ;
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ;
+-- Registration comes before voting. While it is open people put their own
+-- name and number in. Confirming locks the roster and closes it for good.
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS registration_open BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS roster_locked BOOLEAN NOT NULL DEFAULT FALSE;
 -- Anything already running before there was a Start button counts as started.
 UPDATE settings SET started_at = NOW()
   WHERE started_at IS NULL AND voting_open AND id = 1;
