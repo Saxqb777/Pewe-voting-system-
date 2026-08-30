@@ -45,7 +45,11 @@ export const config = {
     const explicit = process.env.NEXT_PUBLIC_SITE_URL?.trim();
     if (explicit) return explicit;
     const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
-    return vercel ? `https://${vercel}` : "";
+    if (vercel) return `https://${vercel}`;
+    // WhatsApp will not fetch a preview image from a relative or localhost
+    // address, so this never falls back to empty. Override it with
+    // NEXT_PUBLIC_SITE_URL if the site ever moves.
+    return "https://pewe-voting-system.vercel.app";
   },
   /** A ballot is valid only when it carries exactly this many choices. */
   get selectionsRequired() {

@@ -14,6 +14,9 @@ export const metadata: Metadata = {
   // WhatsApp reads these when someone shares the voting link, so the society
   // seal and the election name show under the link instead of a bare address.
   openGraph: {
+    type: "website",
+    url: "/",
+    siteName: strings.common.orgName,
     title: strings.common.appName,
     description,
     images: [{ url: "/og.png", width: 1200, height: 630, alt: strings.common.appName }],
