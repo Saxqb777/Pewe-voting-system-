@@ -6,6 +6,11 @@ const nextConfig: NextConfig = {
   env: { BUILD_TIME: new Date().toISOString() },
   poweredByHeader: false,
   reactStrictMode: true,
+  // The voter guide is a plain page served from our own site, so the link we
+  // send carries the society's address and nothing else.
+  async rewrites() {
+    return [{ source: "/guide", destination: "/guide.html" }];
+  },
   async headers() {
     return [
       {
