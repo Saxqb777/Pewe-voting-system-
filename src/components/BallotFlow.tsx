@@ -33,8 +33,14 @@ export function BallotFlow({
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (q === "") return candidates;
+    // Searching by phone number as well, since that is how somebody with a
+    // common name will be told apart.
+    const digits = q.replace(/\D/g, "");
     return candidates.filter(
-      (c) => c.name.toLowerCase().includes(q) || String(c.number) === q,
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        String(c.number) === q ||
+        (digits.length >= 4 && c.phone.replace(/\D/g, "").includes(digits)),
     );
   }, [candidates, query]);
 
@@ -145,8 +151,15 @@ export function BallotFlow({
                   >
                     {c.number}
                   </span>
-                  <span className="flex-1 text-lg font-medium text-ink">
-                    {c.name}
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-lg font-medium text-ink">
+                      {c.name}
+                    </span>
+                    {c.phone ? (
+                      <span className="block font-mono text-sm text-ink-soft">
+                        {c.phone}
+                      </span>
+                    ) : null}
                   </span>
                   <span
                     aria-hidden
@@ -251,7 +264,14 @@ function ConfirmStep({
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-sm font-bold text-brand-dark">
               {c.number}
             </span>
-            <span className="flex-1 text-lg font-medium text-ink">{c.name}</span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-lg font-medium text-ink">{c.name}</span>
+              {c.phone ? (
+                <span className="block font-mono text-sm text-ink-soft">
+                  {c.phone}
+                </span>
+              ) : null}
+            </span>
           </li>
         ))}
       </ol>
