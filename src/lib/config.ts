@@ -36,6 +36,17 @@ export const config = {
   get expectedVoterCount() {
     return intOr("EXPECTED_VOTER_COUNT", 138);
   },
+  /**
+   * Public address of the site. Used only to turn the society seal into an
+   * absolute address, so WhatsApp can show it when someone shares the link.
+   * Vercel supplies its own host, so this is usually left unset.
+   */
+  get siteUrl() {
+    const explicit = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+    if (explicit) return explicit;
+    const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+    return vercel ? `https://${vercel}` : "";
+  },
   /** A ballot is valid only when it carries exactly this many choices. */
   get selectionsRequired() {
     return intOr("SELECTIONS_REQUIRED", 17);

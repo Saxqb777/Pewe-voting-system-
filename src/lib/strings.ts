@@ -8,7 +8,12 @@
 
 export const strings = {
   common: {
-    appName: "PEWE Election",
+    orgName: "Pewe Social Welfare Society",
+    registration: "Registration No. F/3584/RTG",
+    appName: "PSWS General Election for Pewe 2026",
+    contactLead: "For any questions, please contact",
+    contactName: "Nisar PSWS",
+    contactPhone: "+974 5588 4597",
     testBanner: "TEST MODE. This is a practice run. Nothing here counts.",
     loading: "Please wait",
     back: "Back",
@@ -19,14 +24,14 @@ export const strings = {
       "The page could not load. Your vote has not been affected. Please wait a moment and try again.",
     errorRetry: "Try again",
     errorContact:
-      "If it keeps happening, please contact the election admin.",
+      "If it keeps happening, please contact Nisar PSWS on +974 5588 4597.",
     notFoundTitle: "Page not found",
     notFoundLead: "Please use the link that was shared in the group.",
     slowConnectionHint: "If nothing happens, wait a moment and try once more.",
   },
 
   entry: {
-    title: "PEWE Election",
+    title: "PSWS General Election for Pewe 2026",
     subtitle: "Enter your Voter ID to begin",
     label: "Voter ID",
     countryLabel: "Where are you voting from?",
@@ -42,11 +47,11 @@ export const strings = {
     // find out which IDs exist or which people have already voted.
     generic: "That Voter ID cannot be used. Please check it and try again.",
     locked:
-      "Too many attempts from this phone. Please contact the election admin.",
+      "Too many attempts from this phone. Please contact Nisar PSWS on +974 5588 4597.",
     closed: "Voting is closed. Thank you.",
     notReady: "Voting has not opened yet. Please try again later.",
     opensAt: (when: string) => `Voting opens on ${when}. Please come back then.`,
-    help: "Your Voter ID was given to you by the election admin.",
+    help: "Your Voter ID was sent to you by the society. It is only yours.",
     closesAt: (when: string) => `Voting closes on ${when}`,
     closesIn: "Voting closes in",
     opensIn: "Voting opens in",

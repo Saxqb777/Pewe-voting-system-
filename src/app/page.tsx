@@ -6,6 +6,7 @@ import { Screen } from "@/components/Screen";
 import { EntryForm } from "@/components/EntryForm";
 import { VotingWindowNotice } from "@/components/VotingWindowNotice";
 import { OpensAtNotice } from "@/components/OpensAtNotice";
+import { Brand, ContactLine } from "@/components/Brand";
 
 export const dynamic = "force-dynamic";
 
@@ -20,8 +21,14 @@ export default async function EntryPage() {
   if (settings.votingEnded) {
     return (
       <Screen mode={settings.mode}>
-        <h1 className="text-3xl font-bold text-ink">{strings.closed.title}</h1>
-        <p className="mt-3 text-lg text-ink-soft">{strings.closed.lead}</p>
+        <Brand />
+        <h1 className="mt-5 text-center text-2xl font-bold tracking-tight text-balance text-ink">
+          {strings.closed.title}
+        </h1>
+        <p className="mt-3 text-center text-lg text-ink-soft">
+          {strings.closed.lead}
+        </p>
+        <ContactLine />
       </Screen>
     );
   }
@@ -29,8 +36,11 @@ export default async function EntryPage() {
   if (!settings.votingOpen) {
     return (
       <Screen mode={settings.mode}>
-        <div className="pt-8 text-center">
-          <h1 className="text-3xl font-bold text-ink">{strings.entry.title}</h1>
+        <div className="pt-2 text-center">
+          <Brand />
+          <h1 className="mt-5 text-2xl font-bold tracking-tight text-balance text-ink">
+            {strings.entry.title}
+          </h1>
           {settings.opensAt && settings.schedule === "before" ? (
             <OpensAtNotice opensAt={settings.opensAt.toISOString()} />
           ) : (
@@ -38,6 +48,7 @@ export default async function EntryPage() {
               {strings.entry.notReady}
             </p>
           )}
+          <ContactLine />
         </div>
       </Screen>
     );
@@ -51,7 +62,10 @@ export default async function EntryPage() {
   return (
     <Screen mode={settings.mode}>
       <header className="mb-6 text-center">
-        <h1 className="text-3xl font-bold text-ink">{strings.entry.title}</h1>
+        <Brand />
+        <h1 className="mt-4 text-2xl font-bold tracking-tight text-balance text-ink">
+          {strings.entry.title}
+        </h1>
         <p className="mt-2 text-lg text-ink-soft">{strings.entry.subtitle}</p>
       </header>
 
@@ -82,6 +96,8 @@ export default async function EntryPage() {
           ))}
         </ul>
       </section>
+
+      <ContactLine />
     </Screen>
   );
 }
