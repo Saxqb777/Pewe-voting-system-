@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: strings.common.appName,
     description,
-    images: [{ url: "/psws-logo.jpg", width: 225, height: 225 }],
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: strings.common.appName }],
   },
 };
 

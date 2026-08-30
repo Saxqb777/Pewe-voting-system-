@@ -7,6 +7,7 @@ import { EntryForm } from "@/components/EntryForm";
 import { VotingWindowNotice } from "@/components/VotingWindowNotice";
 import { OpensAtNotice } from "@/components/OpensAtNotice";
 import { Brand, ContactLine } from "@/components/Brand";
+import { SocietyNote } from "@/components/SocietyNote";
 
 export const dynamic = "force-dynamic";
 
@@ -96,6 +97,8 @@ export default async function EntryPage() {
           ))}
         </ul>
       </section>
+
+      <SocietyNote />
 
       <ContactLine />
     </Screen>

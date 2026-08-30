@@ -30,6 +30,16 @@ export const strings = {
     slowConnectionHint: "If nothing happens, wait a moment and try once more.",
   },
 
+  /**
+   * A word from the society, shown on the screen where a voter enters their
+   * code. Written by the society, kept exactly as they wrote it.
+   */
+  note: {
+    quote: "Qiyadat ek Amanah hai aur vote ek Gawahi (Shahadat) hai.",
+    body: "PSWS ke 17 members ko chunte waqt hum sabhi ko chahiye ke poori hikmat, imandari aur soch-samajh kar apna vote dein. Allah Ta'ala se dua hai ke wo har voter ko sahi faisla lene ki hidayat ata farmaye. Jin 17 numaindon ko chuna jaye, wo aur unhe chunne wale tamaam afrad aapas mein kandhe se kandha mila kar, ek dil hokar Pewe ki falah-o-behbood aur taraqqi ke liye khuloos ke sath kaam karein.",
+    amen: "Aameen.",
+  },
+
   entry: {
     title: "PSWS General Election for Pewe 2026",
     subtitle: "Enter your Voter ID to begin",
