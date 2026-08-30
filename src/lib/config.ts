@@ -135,7 +135,7 @@ export function checkConfig(): ConfigProblem[] {
     });
   }
 
-  const voters = Number.parseInt(process.env.EXPECTED_VOTER_COUNT ?? "130", 10);
+  const voters = Number.parseInt(process.env.EXPECTED_VOTER_COUNT ?? "138", 10);
   const picks = Number.parseInt(process.env.SELECTIONS_REQUIRED ?? "16", 10);
   if (Number.isFinite(voters) && Number.isFinite(picks) && picks >= voters) {
     problems.push({
