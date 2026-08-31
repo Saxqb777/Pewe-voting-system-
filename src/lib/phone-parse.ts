@@ -42,6 +42,21 @@ function attempt(
 }
 
 /**
+ * Reads digits as a whole international number, but only believes the answer
+ * when the country it lands in is the one expected.
+ */
+function attemptFrom(digits: string, expected: CountryCode): string | null {
+  try {
+    const parsed = parsePhoneNumberFromString(`+${digits}`);
+    return parsed && parsed.isValid() && parsed.country === expected
+      ? normalisePhone(parsed.number)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Works out the full international form of a number.
  *
  * The number itself is asked first, so a man living in Dubai who registers
@@ -59,31 +74,51 @@ export function toInternational(raw: string, country: string | null): string {
   const iso = isoForCountry(country) as CountryCode | null;
   const hint = (strict: boolean) =>
     iso ? attempt(raw, iso, strict) ?? attempt(digits, iso, strict) : null;
+  const asWritten = (strict: boolean) => attempt(`+${digits}`, undefined, strict);
 
-  // A number written with a zero in front is being written the way its own
-  // country writes it at home. Nobody puts a zero before a country code, so
-  // that zero says plainly which reading was meant.
+  // A plus is a man saying plainly that what follows is the whole number.
+  const plus = /^\s*\+/.test(raw);
+  // A zero in front is him writing it the way home writes it. Nobody puts a
+  // zero before a country code.
   const writtenAtHome = /^0/.test(raw.replace(/\D/g, ""));
 
-  // 1. It carries its own country code, which settles it whatever else was
-  //    said. A man working in Dubai who registers his Indian mobile is
+  // 1. Written with a plus, so its own country code settles it whatever else
+  //    was said. A man working in Dubai who registers his Indian mobile is
   //    recorded as Indian.
-  const own = attempt(`+${digits}`, undefined, true);
-  if (own) return own;
+  if (plus) {
+    const own = asWritten(true);
+    if (own) return own;
+  }
 
-  // 2. The country he chose on the form, which he told us himself.
+  // 1b. Digits that already begin with his own country's code, written
+  //     without the plus. Accepted only when the code they carry is his
+  //     country's: a German number read as though it began with an American
+  //     1 is how a real number ends up in the wrong place.
+  if (iso) {
+    const ownAndHis = attemptFrom(digits, iso);
+    if (ownAndHis) return ownAndHis;
+  }
+
+  // 2. The country he chose on the form. Asked before the bare digits are
+  //    assumed to carry a code, because a German number read as though it
+  //    began with an American 1 is how a real number ends up in the wrong
+  //    country.
   const named = hint(true);
   if (named) return named;
 
-  // 3. A number written the home way belongs to the country he named, even
-  //    when the strict rules refuse it. Real numbers are sometimes refused,
-  //    and his own word beats a country we would have guessed for him.
+  // 3. Digits that turn out to carry a country code of their own after all.
+  const own = asWritten(true);
+  if (own) return own;
+
+  // 4. Written the home way, believed on length alone. Real numbers are
+  //    sometimes refused by the strict rules, and his own word about where he
+  //    is beats a country we would have guessed for him.
   if (writtenAtHome) {
     const home = hint(false);
     if (home) return home;
   }
 
-  // 4. Failing that, the countries this election is spread across. Only
+  // 5. Failing all that, the countries this election is spread across. Only
   //    accepted when exactly one of them recognises the number, because two
   //    answers is the same as none.
   const guesses = new Set<string>();
@@ -93,6 +128,8 @@ export function toInternational(raw: string, country: string | null): string {
   }
   if (guesses.size === 1) return [...guesses][0];
 
-  // 5. Last of all, believed on length: his country, then its own code.
-  return hint(false) ?? attempt(`+${digits}`, undefined, false) ?? digits;
+  // 6. Last of all, believed on length: his country, then its own code. And
+  //    if nothing recognises it, the digits exactly as he typed them, so no
+  //    number is ever lost to a rule that did not understand it.
+  return hint(false) ?? asWritten(false) ?? digits;
 }

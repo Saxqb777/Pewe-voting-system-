@@ -11,12 +11,13 @@
     "verify:anonymity": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/verify-anonymity.ts",
     "test:ballot-box": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/test-ballot-box.mts",
     "test:roster": "tsx --conditions=react-server scripts/test-roster.mts",
-    "test": "npm run test:roster && npm run test:phone && npm run test:phone-parse && npm run test:connection-string && npm run test:schema-race && npm run test:migration && npm run test:ballot-box && npm run verify:anonymity",
+    "test": "npm run test:roster && npm run test:phone && npm run test:phone-parse && npm run test:every-country && npm run test:connection-string && npm run test:schema-race && npm run test:migration && npm run test:ballot-box && npm run verify:anonymity",
     "test:connection-string": "tsx --conditions=react-server scripts/test-connection-string.mts",
     "test:schema-race": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/test-schema-race.mts",
     "test:phone": "tsx --conditions=react-server scripts/test-phone.mts",
     "test:migration": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/test-migration.mts",
-    "test:phone-parse": "tsx --conditions=react-server scripts/test-phone-parse.mts"
+    "test:phone-parse": "tsx --conditions=react-server scripts/test-phone-parse.mts",
+    "test:every-country": "tsx --conditions=react-server scripts/test-every-country.mts"
   },
   "dependencies": {
     "libphonenumber-js": "^1.13.12",
