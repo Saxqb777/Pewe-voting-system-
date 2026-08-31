@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     description,
     // Square on purpose. WhatsApp crops a preview to a square thumbnail, so a
     // wide banner arrives with most of it cut away.
-    images: [{ url: "/og.png", width: 600, height: 600, alt: strings.common.appName }],
+    images: [{ url: "/og-2026.png", width: 600, height: 600, alt: strings.common.appName }],
   },
 };
 
