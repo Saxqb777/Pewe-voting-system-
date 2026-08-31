@@ -3,8 +3,13 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { registerVoterForm, type RegisterState } from "@/actions/registration";
-import { OpensAtNotice } from "./OpensAtNotice";
+import Link from "next/link";
 import { strings } from "@/lib/strings";
+import {
+  COMMON_COUNTRIES,
+  OTHER_COUNTRIES,
+  OTHER_LABEL,
+} from "@/lib/countries";
 
 const START: RegisterState = { phase: "form", error: null };
 
@@ -26,14 +31,7 @@ export type EarlierVisit = {
   state: "registered" | "pending" | "approved";
 };
 
-export function RegisterForm({
-  already = null,
-  opensAt = null,
-}: {
-  already?: EarlierVisit | null;
-  /** When voting is due to start, so a man who is done sees the wait itself. */
-  opensAt?: string | null;
-}) {
+export function RegisterForm({ already = null }: { already?: EarlierVisit | null }) {
   const [state, formAction] = useActionState(registerVoterForm, START);
   const r = strings.register;
 
@@ -91,13 +89,6 @@ export function RegisterForm({
         <h2 className="text-2xl font-bold text-ink">{title}</h2>
         <p className="mt-1 text-lg text-ink-soft">{r.backLead(already.name)}</p>
 
-        {/* The wait is the answer to the question he came back to ask, so it
-            goes above the words rather than under them. Not for a man still
-            waiting to be approved, who has a nearer question than this one. */}
-        {opensAt && already.state !== "pending" ? (
-          <OpensAtNotice opensAt={opensAt} />
-        ) : null}
-
         {already.state === "pending" ? (
           <p className="mt-4 text-base text-ink-soft">{r.pendingLead}</p>
         ) : already.state === "approved" ? (
@@ -128,14 +119,21 @@ export function RegisterForm({
           </>
         )}
 
-        {/* A plain link rather than a button, so a shared phone still works
-            when the page's JavaScript has not loaded. */}
-        <a
-          href="/?again=1"
-          className="mt-5 inline-flex min-h-12 items-center rounded-xl border-2 border-line px-4 py-2 text-base font-semibold text-ink"
-        >
-          {r.backAnother}
-        </a>
+        {/* The wait is what he came back to check, so the way to it is the
+            one thing on this screen to press. A real link, so it works before
+            the page's JavaScript has loaded, and it moves without leaving the
+            site or asking him to open anything again. */}
+        {already.state === "pending" ? null : (
+          <Link
+            href="/countdown"
+            className="mt-6 flex min-h-14 w-full flex-col items-center justify-center rounded-xl bg-brand px-4 py-3 text-center text-lg font-bold text-white active:bg-brand-dark"
+          >
+            {r.backCountdown}
+            <span className="mt-0.5 block text-base font-normal">
+              {r.backCountdownHi}
+            </span>
+          </Link>
+        )}
       </section>
     );
   }
@@ -197,6 +195,44 @@ export function RegisterForm({
           {r.phoneHelp}
         </p>
       )}
+
+      <label
+        htmlFor="country"
+        className="mb-2 mt-6 block text-base font-semibold text-ink"
+      >
+        {r.countryLabel}
+      </label>
+      <select
+        id="country"
+        name="country"
+        required
+        defaultValue=""
+        aria-describedby="countryHelp"
+        className="w-full rounded-xl border-2 border-line bg-card px-4 py-4 text-lg text-ink focus:border-brand"
+      >
+        <option value="" disabled>
+          {r.countryPlaceholder}
+        </option>
+        <optgroup label={r.countryCommon}>
+          {COMMON_COUNTRIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </optgroup>
+        <optgroup label={r.countryOther}>
+          {OTHER_COUNTRIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+          <option value={OTHER_LABEL}>{OTHER_LABEL}</option>
+        </optgroup>
+      </select>
+      <p id="countryHelp" className="mt-2 text-sm text-ink-soft">
+        {r.countryHelp}
+        <span className="mt-1 block">{r.countryHelpHi}</span>
+      </p>
 
       <SubmitButton />
     </form>

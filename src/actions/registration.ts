@@ -7,6 +7,7 @@ import { strings } from "@/lib/strings";
 import { getClientIp } from "@/lib/request-info";
 import { generateVoterIds } from "@/lib/voter-id-generator";
 import { normalisePhone, looksLikeAPhoneNumber, sameNumber } from "@/lib/phone";
+import { normaliseCountry } from "@/lib/countries";
 import { readAdminSession, writeRegistrationMark } from "@/lib/session";
 import { config } from "@/lib/config";
 import { REGISTRATION_PHRASE } from "@/lib/phrases";
@@ -25,6 +26,7 @@ export type RegisterResult =
   | { status: "closed" }
   | { status: "bad_number" }
   | { status: "bad_name" }
+  | { status: "bad_country" }
   | { status: "too_many" };
 
 /** Registrations allowed from one network address in the rolling window. */
@@ -64,6 +66,7 @@ async function freshCode(): Promise<string> {
 export async function registerVoter(
   rawName: string,
   rawPhone: string,
+  rawCountry: string,
 ): Promise<RegisterResult> {
   await ensureSchema();
 
@@ -73,6 +76,10 @@ export async function registerVoter(
   const name = tidyName(rawName);
   if (name.length < MIN_NAME_LENGTH) return { status: "bad_name" };
   if (!looksLikeAPhoneNumber(rawPhone)) return { status: "bad_number" };
+  // Asked here rather than on voting day, so the only thing standing between
+  // a man and his ballot on the day is the code in his hand.
+  const country = normaliseCountry(rawCountry);
+  if (country === null) return { status: "bad_country" };
 
   // Stops one person, or one script, filling the roster with invented people.
   const ip = await getClientIp();
@@ -108,11 +115,11 @@ export async function registerVoter(
 
   try {
     await sql`
-      INSERT INTO voters (voter_id, name, candidate_number, phone, status, registered_at, ip_address)
+      INSERT INTO voters (voter_id, name, candidate_number, phone, status, registered_at, ip_address, country)
       VALUES (
         ${code}, ${name},
         (SELECT COALESCE(MAX(candidate_number), 0) + 1 FROM voters),
-        ${phone}, ${status}, NOW(), ${ip}
+        ${phone}, ${status}, NOW(), ${ip}, ${country}
       )
     `;
   } catch {
@@ -148,8 +155,9 @@ export async function registerVoterForm(
 ): Promise<RegisterState> {
   const name = String(formData.get("fullName") ?? "");
   const phone = String(formData.get("phone") ?? "");
+  const country = String(formData.get("country") ?? "");
 
-  const result = await registerVoter(name, phone);
+  const result = await registerVoter(name, phone, country);
   const r = strings.register;
 
   switch (result.status) {
@@ -170,6 +178,8 @@ export async function registerVoterForm(
       return { phase: "form", error: r.closed };
     case "bad_name":
       return { phase: "form", error: r.badName };
+    case "bad_country":
+      return { phase: "form", error: r.badCountry };
     case "too_many":
       return { phase: "form", error: r.tooMany };
     default:

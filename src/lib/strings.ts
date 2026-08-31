@@ -47,8 +47,8 @@ export const strings = {
    */
   register: {
     title: "Register to vote",
-    lead: "Put in your full name and your phone number. Your voting code appears on this screen straight away.",
-    leadHi: "Apna poora naam aur phone number likhiye. Aapka voting code isi screen par turant aa jayega.",
+    lead: "Put in your full name, your phone number and the country you are living in. Your voting code appears on this screen straight away.",
+    leadHi: "Apna poora naam, phone number aur jis mulk mein aap rehte hain woh likhiye. Aapka voting code isi screen par turant aa jayega.",
     nameLabel: "Your full name",
     namePlaceholder: "Your full name",
     nameHelp: "Every voter will see this name on the ballot, so please write it in full and properly.",
@@ -56,6 +56,15 @@ export const strings = {
     phoneLabel: "Your phone number",
     phonePlaceholder: "Your WhatsApp number",
     phoneHelp: "Use the same number the society has for you.",
+    countryLabel: "Where are you living now?",
+    countryPlaceholder: "Choose a country",
+    countryCommon: "Most common",
+    countryOther: "Everywhere else",
+    countryHelp:
+      "Asked once, here. The society counts how many are voting from each country, and it is never attached to your choices.",
+    countryHelpHi:
+      "Yeh sirf ek baar poocha jayega, yahin. Society sirf ginti karti hai ki kis mulk se kitne log vote de rahe hain. Aapke vote se iska koi taalluq nahi.",
+    badCountry: "Please choose the country you are living in.",
     submit: "Register",
     working: "Please wait",
     badName: "Please write your full name.",
@@ -94,7 +103,16 @@ export const strings = {
       "Your code is not shown again. If you have lost it, please contact the election admin below.",
     backLostHi:
       "Code dobara nahi dikhaya jayega. Agar kho gaya hai to neeche diye gaye election admin se sampark kijiye.",
-    backAnother: "Somebody else on this phone needs to register",
+    backCountdown: "See the countdown to voting",
+    backCountdownHi: "Voting ka countdown dekhiye",
+    waitTitle: "You are registered. Now we wait",
+    waitTitleHi: "Aap register ho chuke hain. Ab intezaar",
+    waitLead:
+      "Come back to this same link when the counter runs out and put your code in.",
+    waitLeadHi:
+      "Jab yeh counter khatam ho jaye, isi link par wapas aaiye aur apna code daaliye.",
+    waitBack: "Go back",
+    waitBackHi: "Wapas jaiye",
     backPendingTitle: "You are waiting to be approved",
     backApprovedTitle: "You have been approved",
     backApprovedLead:

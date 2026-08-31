@@ -1,5 +1,4 @@
 import { sql, ensureSchema } from "@/lib/db";
-import { config } from "@/lib/config";
 import { getSettings } from "@/lib/settings";
 import { readVoterSession, readRegistrationMark } from "@/lib/session";
 import { strings } from "@/lib/strings";
@@ -28,9 +27,12 @@ export default async function EntryPage({
   // Registration comes first. While it is open the ballot does not exist yet,
   // so the code box would have nothing to check against.
   if (settings.registrationOpen) {
-    // Phones are shared. A man who has registered sees what happened instead
-    // of an empty form, and anyone else holding the same phone can still get
-    // to the form through the link on that screen.
+    // A man who has registered sees what happened instead of an empty form.
+    //
+    // Nothing on screen offers the form a second time. The address still
+    // answers to ?again=1, which is the one way to hand a shared phone back
+    // to the form, so a household with a single phone is recoverable without
+    // putting a button in front of everybody who does not need it.
     //
     // What the phone remembers is only a number. The register itself is asked
     // whether that number is still on it, so a mark left behind by a practice
@@ -60,12 +62,6 @@ export default async function EntryPage({
       }
     }
 
-    // The date confirming the roster will set. Shown to somebody who has
-    // already registered so the same link answers what he came back for.
-    const opening = config.electionOpensAt;
-    const plannedOpening =
-      opening.getTime() > Date.now() ? opening.toISOString() : null;
-
     return (
       <Screen mode={settings.mode}>
         <header className="mb-6 text-center">
@@ -83,7 +79,7 @@ export default async function EntryPage({
           </p>
         )}
 
-        <RegisterForm already={already} opensAt={plannedOpening} />
+        <RegisterForm already={already} />
 
         <SocietyNote />
         <ContactLine />

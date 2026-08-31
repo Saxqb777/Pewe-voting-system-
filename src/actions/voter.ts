@@ -7,7 +7,6 @@ import { castBallot } from "@/lib/ballot-box";
 import { getSettings } from "@/lib/settings";
 import { getClientIp } from "@/lib/request-info";
 import { normaliseVoterId } from "@/lib/voter-id";
-import { normaliseCountry } from "@/lib/countries";
 import { readVoterSession, writeVoterSession } from "@/lib/session";
 import {
   isSessionLocked,
@@ -33,7 +32,6 @@ export type VerifyResult =
 export async function verifyVoterId(
   rawId: string,
   fingerprint: string,
-  rawCountry?: string,
 ): Promise<VerifyResult> {
   await ensureSchema();
 
@@ -86,13 +84,13 @@ export async function verifyVoterId(
   session.voted = false;
   await writeVoterSession(session);
 
-  // Fingerprint, IP and country belong to the register, never to the ballot
-  // box. Anything unrecognised is stored as nothing rather than as itself.
+  // Fingerprint and IP belong to the register, never to the ballot box. The
+  // country was given at registration and is left alone: on the day the only
+  // thing between a man and his ballot is the code in his hand.
   await sql`
     UPDATE voters
     SET device_fingerprint = ${fingerprint ? fingerprint.slice(0, 128) : null},
-        ip_address = ${ip},
-        country = ${normaliseCountry(rawCountry)}
+        ip_address = ${ip}
     WHERE voter_id = ${voter.voter_id}
   `;
 
@@ -116,9 +114,8 @@ export async function verifyVoterIdForm(
 ): Promise<VerifyState> {
   const rawId = String(formData.get("voterId") ?? "");
   const fingerprint = String(formData.get("fingerprint") ?? "");
-  const country = String(formData.get("country") ?? "");
 
-  const result = await verifyVoterId(rawId, fingerprint, country);
+  const result = await verifyVoterId(rawId, fingerprint);
 
   switch (result.status) {
     case "ok":
