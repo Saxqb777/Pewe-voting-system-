@@ -8,6 +8,7 @@ import { getClientIp } from "@/lib/request-info";
 import { generateVoterIds } from "@/lib/voter-id-generator";
 import { normalisePhone, looksLikeAPhoneNumber, sameNumber } from "@/lib/phone";
 import { normaliseCountry } from "@/lib/countries";
+import { toInternational } from "@/lib/phone-parse";
 import { readAdminSession, writeRegistrationMark } from "@/lib/session";
 import { config } from "@/lib/config";
 import { REGISTRATION_PHRASE } from "@/lib/phrases";
@@ -107,8 +108,10 @@ export async function registerVoter(
 
   const match = allowed.find((row) => sameNumber(row.phone, typed));
   // The list's own spelling of the number wins, so one man cannot appear
-  // twice under two ways of writing the same number.
-  const phone = match ? normalisePhone(match.phone) : typed;
+  // twice under two ways of writing the same number. Off the list there is no
+  // agreed spelling, so the number is worked out into its full international
+  // form rather than stored as a bare 0506918237 that reads as nothing.
+  const phone = match ? normalisePhone(match.phone) : toInternational(rawPhone, country);
   const status = match ? "approved" : "pending";
 
   const code = await freshCode();
@@ -235,7 +238,9 @@ export async function loadAllowedNumbers(text: string): Promise<AdminResult> {
       rejected.push(trimmed.slice(0, 40));
       continue;
     }
-    const phone = normalisePhone(numberPart);
+    // Worked out the same way a voter's own number is, so a list pasted with
+    // bare national numbers still reads properly everywhere it is shown.
+    const phone = toInternational(numberPart, null);
     if (seen.has(phone)) continue;
     seen.add(phone);
     rows.push({ phone, known_name: namePart.slice(0, 60) });
