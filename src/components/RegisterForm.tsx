@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { registerVoterForm, type RegisterState } from "@/actions/registration";
+import { OpensAtNotice } from "./OpensAtNotice";
 import { strings } from "@/lib/strings";
 
 const START: RegisterState = { phase: "form", error: null };
@@ -25,7 +26,14 @@ export type EarlierVisit = {
   state: "registered" | "pending" | "approved";
 };
 
-export function RegisterForm({ already = null }: { already?: EarlierVisit | null }) {
+export function RegisterForm({
+  already = null,
+  opensAt = null,
+}: {
+  already?: EarlierVisit | null;
+  /** When voting is due to start, so a man who is done sees the wait itself. */
+  opensAt?: string | null;
+}) {
   const [state, formAction] = useActionState(registerVoterForm, START);
   const r = strings.register;
 
@@ -82,6 +90,13 @@ export function RegisterForm({ already = null }: { already?: EarlierVisit | null
       <section className="rounded-xl border-2 border-brand bg-card p-5">
         <h2 className="text-2xl font-bold text-ink">{title}</h2>
         <p className="mt-1 text-lg text-ink-soft">{r.backLead(already.name)}</p>
+
+        {/* The wait is the answer to the question he came back to ask, so it
+            goes above the words rather than under them. Not for a man still
+            waiting to be approved, who has a nearer question than this one. */}
+        {opensAt && already.state !== "pending" ? (
+          <OpensAtNotice opensAt={opensAt} />
+        ) : null}
 
         {already.state === "pending" ? (
           <p className="mt-4 text-base text-ink-soft">{r.pendingLead}</p>

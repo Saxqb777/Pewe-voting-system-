@@ -20,16 +20,27 @@ export function describeGap(milliseconds: number): string {
   return part(seconds, "second");
 }
 
-/** A moment written out in the reader's own zone. */
+/**
+ * A moment written out in India time, because that is the hour the society
+ * announced and the one every voter has been told.
+ *
+ * Half this village works in the Gulf, where the reader's own zone would show
+ * a different hour than the message in the group, and a man reading a closing
+ * time two and a half hours later than it really is misses the vote. The
+ * countdown above it is the figure that needs no arithmetic at all.
+ */
 export function describeMoment(iso: string | null): string {
   if (!iso) return "";
   const when = new Date(iso);
   if (Number.isNaN(when.getTime())) return "";
-  return when.toLocaleString(undefined, {
+  const text = when.toLocaleString("en-GB", {
+    timeZone: "Asia/Kolkata",
     weekday: "long",
     day: "numeric",
     month: "long",
     hour: "numeric",
     minute: "2-digit",
+    hour12: true,
   });
+  return `${text} India time`;
 }

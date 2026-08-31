@@ -1,4 +1,5 @@
 import { sql, ensureSchema } from "@/lib/db";
+import { config } from "@/lib/config";
 import { getSettings } from "@/lib/settings";
 import { readVoterSession, readRegistrationMark } from "@/lib/session";
 import { strings } from "@/lib/strings";
@@ -59,6 +60,12 @@ export default async function EntryPage({
       }
     }
 
+    // The date confirming the roster will set. Shown to somebody who has
+    // already registered so the same link answers what he came back for.
+    const opening = config.electionOpensAt;
+    const plannedOpening =
+      opening.getTime() > Date.now() ? opening.toISOString() : null;
+
     return (
       <Screen mode={settings.mode}>
         <header className="mb-6 text-center">
@@ -76,7 +83,7 @@ export default async function EntryPage({
           </p>
         )}
 
-        <RegisterForm already={already} />
+        <RegisterForm already={already} opensAt={plannedOpening} />
 
         <SocietyNote />
         <ContactLine />
