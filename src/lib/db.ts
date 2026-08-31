@@ -269,6 +269,11 @@ CREATE TABLE IF NOT EXISTS audit_log (
 async function createSchema(): Promise<void> {
   // One round trip to ask whether there is anything to do at all. On a warm
   // database this is the only query this function ever runs.
+  //
+  // EVERY new table and column has to be named here. A database from an
+  // earlier version already holds all the old tables, so a check that only
+  // asks about those reports itself ready, the migration never runs, and the
+  // first query for a new column takes the whole site down.
   const [ready] = await sql<{ ready: boolean }[]>`
     SELECT
       to_regclass('public.settings') IS NOT NULL
@@ -294,6 +299,19 @@ async function createSchema(): Promise<void> {
         WHERE table_schema = 'public'
           AND table_name = 'settings'
           AND column_name = 'started_at'
+      )
+      AND to_regclass('public.allowed_numbers') IS NOT NULL
+      AND EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'voters'
+          AND column_name = 'status'
+      )
+      AND EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'settings'
+          AND column_name = 'roster_locked'
       ) AS ready
   `;
   if (ready?.ready) return;
