@@ -28,9 +28,8 @@ import {
   type ActionResult,
 } from "@/actions/admin";
 import { Button, Notice, Section } from "./ui";
-import { RegistrationPanel } from "./RegistrationPanel";
+import { ElectionFlow } from "./ElectionFlow";
 import { ElectionStatus } from "./ElectionStatus";
-import { NextSteps } from "./NextSteps";
 
 const POLL_MS = 10000;
 
@@ -71,6 +70,7 @@ export function Dashboard({ initial }: { initial: DashboardData }) {
   );
 
   const pendingVoters = data.voters.filter((v) => !v.hasVoted);
+  const registering = data.registration.open;
 
   return (
     <div className="space-y-4">
@@ -99,27 +99,38 @@ export function Dashboard({ initial }: { initial: DashboardData }) {
       ) : null}
 
       <ElectionStatus data={data} />
-      <NextSteps data={data} run={run} pending={pending} />
-      <RegistrationPanel
-        data={data}
-        run={run}
-        pending={pending}
-        defaultOpensAt={data.defaultOpensAt}
-        defaultClosesAt={data.defaultClosesAt}
-      />
-      <TurnoutPanel data={data} />
-      <PendingPanel voters={pendingVoters} total={data.turnout.total} />
-      <VoterToolsPanel data={data} run={run} pending={pending} />
-      <CountriesPanel data={data} />
-      <FlagsPanel data={data} run={run} pending={pending} />
-      <SchedulePanel data={data} run={run} pending={pending} />
-      {data.mode === "test" ? (
-        <PracticePanel data={data} run={run} pending={pending} />
-      ) : null}
-      <RosterPanel data={data} run={run} pending={pending} />
-      <RestartPanel data={data} run={run} pending={pending} />
-      <ResetPanel data={data} run={run} pending={pending} />
-      <AuditPanel data={data} />
+
+      {registering ? (
+        // While people are still putting their names in there is no roster to
+        // run an election against. Every control that starts, schedules or
+        // replaces one is off the page, so none of them can be pressed by
+        // accident on a half built list.
+        <>
+          <ElectionFlow data={data} run={run} pending={pending} />
+          <RosterPanel data={data} />
+          <ResetPanel data={data} run={run} pending={pending} />
+          <AuditPanel data={data} />
+        </>
+      ) : (
+        <>
+          <ElectionFlow data={data} run={run} pending={pending} />
+          <TurnoutPanel data={data} />
+          <PendingPanel voters={pendingVoters} total={data.turnout.total} />
+          <VoterToolsPanel data={data} run={run} pending={pending} />
+          <CountriesPanel data={data} />
+          <FlagsPanel data={data} run={run} pending={pending} />
+          <SchedulePanel data={data} run={run} pending={pending} />
+          {data.mode === "test" ? (
+            <PracticePanel data={data} run={run} pending={pending} />
+          ) : null}
+          {/* Pasting a list in would fight the register people built
+              themselves, so it is only offered before registration is used. */}
+          <RosterPanel data={data} />
+          <RestartPanel data={data} run={run} pending={pending} />
+          <ResetPanel data={data} run={run} pending={pending} />
+          <AuditPanel data={data} />
+        </>
+      )}
     </div>
   );
 }
@@ -652,18 +663,14 @@ function PracticePanel({
   );
 }
 
-function RosterPanel({
-  data,
-  run,
-  pending,
-}: {
-  data: DashboardData;
-  run: RunFn;
-  pending: boolean;
-}) {
-  const [text, setText] = useState("");
-  const [makeIds, setMakeIds] = useState(true);
-  const blocked = data.turnout.ballots > 0;
+/**
+ * What the register holds, and the sheet of codes.
+ *
+ * The list itself is built by people registering, so there is nothing to
+ * paste in here. This exists to say how many are on it and to hand over the
+ * sheet of codes for anyone who loses theirs.
+ */
+function RosterPanel({ data }: { data: DashboardData }) {
   const loaded = data.turnout.total > 0;
 
   return (
@@ -687,95 +694,10 @@ function RosterPanel({
           </p>
         </div>
       ) : null}
-
-      {blocked ? (
-        <div className="mt-3">
-          <Notice tone="warn">{strings.admin.rosterBlocked}</Notice>
-        </div>
-      ) : (
-        <>
-          <fieldset className="mt-4">
-            <legend className="sr-only">How the Voter IDs are set</legend>
-            <label className="flex items-start gap-3 rounded-xl border-2 border-line bg-paper p-3">
-              <input
-                type="radio"
-                name="rosterMode"
-                checked={makeIds}
-                onChange={() => setMakeIds(true)}
-                className="mt-1 h-5 w-5 shrink-0"
-              />
-              <span className="text-base font-medium text-ink">
-                {strings.admin.rosterModeNames}
-              </span>
-            </label>
-            <label className="mt-2 flex items-start gap-3 rounded-xl border-2 border-line bg-paper p-3">
-              <input
-                type="radio"
-                name="rosterMode"
-                checked={!makeIds}
-                onChange={() => setMakeIds(false)}
-                className="mt-1 h-5 w-5 shrink-0"
-              />
-              <span className="text-base font-medium text-ink">
-                {strings.admin.rosterModeIds}
-              </span>
-            </label>
-          </fieldset>
-
-          <p className="mt-3 text-sm text-ink-soft">
-            {makeIds
-              ? strings.admin.rosterNamesHelp(data.expectedVoterCount)
-              : strings.admin.rosterHelp}
-          </p>
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            rows={10}
-            spellCheck={false}
-            placeholder={
-              makeIds
-                ? "Amina Khan\nBilal Shah\nChandra Baig"
-                : "100001,Amina Khan\n100002,Bilal Shah"
-            }
-            className="mt-2 w-full rounded-xl border-2 border-line bg-card px-3 py-2 font-mono text-sm text-ink focus:border-brand"
-          />
-          <p
-            className={`mt-1 text-sm ${
-              countRows(text) === data.expectedVoterCount
-                ? "font-medium text-brand"
-                : "text-ink-soft"
-            }`}
-          >
-            {strings.admin.rosterRowCount(
-              countRows(text),
-              data.expectedVoterCount,
-            )}
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Button
-              tone="primary"
-              disabled={pending || text.trim().length === 0}
-              onClick={() =>
-                run(() =>
-                  makeIds ? loadRosterFromNames(text) : loadRoster(text),
-                )
-              }
-            >
-              {strings.admin.rosterLoad}
-            </Button>
-            {data.mode === "test" ? (
-              <Button disabled={pending} onClick={() => run(loadDummyVoters)}>
-                {strings.admin.rosterDummy}
-              </Button>
-            ) : null}
-          </div>
-        </>
-      )}
     </Section>
   );
 }
 
-/** Counts the non blank lines, so the admin can see the total before loading. */
 function countRows(text: string): number {
   return text.split(/\r?\n/).filter((line) => line.trim().length > 0).length;
 }

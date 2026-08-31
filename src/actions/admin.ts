@@ -527,7 +527,11 @@ export async function resetForLive(
       UPDATE settings SET mode = 'live', voting_open = TRUE,
         closed_at = NULL, election_day = CURRENT_DATE,
         test_voter_count = NULL, test_selections = NULL,
-        opens_at = NULL, closes_at = NULL, started_at = NULL
+        opens_at = NULL, closes_at = NULL, started_at = NULL,
+        -- Back to the beginning, which means the roster is open to being
+        -- rebuilt. Leaving these set stranded the election in a phase it had
+        -- already finished.
+        registration_open = FALSE, roster_locked = FALSE
       WHERE id = 1
     `;
   });

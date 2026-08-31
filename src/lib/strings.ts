@@ -176,24 +176,39 @@ export const strings = {
     wrongPassword: "Wrong password.",
     tooManyAttempts: "Too many attempts. Please wait and try again.",
 
+    flowHeading: "Election steps",
+    regNoNameOnFile: "No name on file",
     stepsHeading: "Where you are",
-    step1: "Load the voter list",
-    step1Done: (n: number) => `${n} voters loaded`,
-    step1Todo: "Nobody is on the register yet. Use the Voter list box below.",
-    step2: "Set the voting times",
-    step2Done: "Times are set",
-    step2Todo: "Optional. Use the Voting times box below, or skip it and control voting by hand.",
-    step3: "Start voting",
-    step3Done: "Voting has started",
-    step3Todo: "Nobody can vote until you press this.",
-    step3Button: "Start voting now",
-    step3Confirm:
-      "This opens the ballot. Anyone with a Voter ID can vote from now on. Continue?",
-    step4: "Close voting",
-    step4Done: "Voting is closed",
-    step4Todo: "Press this when everyone has voted, or let the closing time do it.",
-    step5: "Read the results",
-    step5Todo: "Available once voting has closed.",
+    step1: "Load the numbers allowed to register",
+    step1Done: (n: number) => `${n} numbers can register`,
+    step1Todo: "Paste the society's phone numbers in, one per line.",
+    step2: "Open registration",
+    step2Done: "Registration is open",
+    step2Todo: "Until you open it, nobody can put their name in.",
+    step3: "People register themselves",
+    step3Done: (n: number) => `${n} people registered`,
+    step3Waiting: (done: number, left: number) =>
+      left > 0
+        ? `${done} registered, ${left} still to come.`
+        : `${done} registered. Everybody on the list has been in.`,
+    step3Todo: "Each person puts their own name and number in and gets their code.",
+    step4: "Confirm the voter list",
+    step4Done: (n: number) => `Fixed at ${n} voters`,
+    step4Todo:
+      "Closes registration for good and sets the voting dates. Press it when enough people are in.",
+    step5: "Voting opens",
+    step5Done: "Voting has started",
+    step5Auto: (when: string) => `Opens on its own on ${when}. Nothing to do.`,
+    step5Todo: "Set once you confirm the voter list.",
+    step5Button: "Start voting now",
+    step5Confirm:
+      "Start voting now, before the set time? Voters will be able to vote immediately.",
+    step6: "Voting closes",
+    step6Done: "Voting is closed",
+    step6Auto: (when: string) => `Closes on its own on ${when}. Nothing to do.`,
+    step6Todo: "Once voting has started.",
+    step7: "Read the results",
+    step7Todo: "Available once voting has closed.",
     stepOptional: "optional",
 
     statusNotStarted: "Voting has not started",
@@ -318,8 +333,10 @@ export const strings = {
 
     regConfirmHeading: "Fix the list and set the dates",
     regConfirmHelp: (opens: string, closes: string) =>
-      `Confirming closes registration for good, numbers the candidates in name order, and sets voting to open on ${opens} and close on ${closes}. You can still change those times below.`,
+      `Confirming closes registration for good, numbers the candidates in name order, and sets voting to open on ${opens} and close on ${closes}. The times can still be changed afterwards.`,
     regConfirmButton: "Confirm the voter list",
+    regConfirmTooFew: (have: number, seats: number) =>
+      `Only ${have} ${have === 1 ? "person has" : "people have"} registered so far. Each voter has to choose ${seats} names, so at least ${seats + 1} people must register before the list can be fixed.`,
     regConfirmBlocked:
       "Confirming is not possible once there are ballots in the ballot box.",
     regLocked: (n: number) =>
