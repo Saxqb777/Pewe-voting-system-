@@ -310,6 +310,8 @@ export const strings = {
     regAllowedHelp:
       "One per line. A name in front of the number is kept but not required. Anyone whose number is not here can still register, but you have to approve them.",
     regAllowedLoad: "Save this list",
+    regAllowedReplace: (n: number) =>
+      `Saving replaces all ${n} numbers currently on the list. Anyone who has already registered stays registered.`,
     regAllowedCount: (n: number) => `${n} numbers can register.`,
     regOpenHeading: "Open registration",
     regOpenWarning: (phrase: string) =>

@@ -86,7 +86,10 @@ export function ElectionFlow({
         {/* 1. who may register --------------------------------------- */}
         <Step n={1} state={step[1]} title={a.step1}
           detail={hasAllowList ? a.step1Done(reg.allowedCount) : a.step1Todo}>
-          {step[1] === "now" ? (
+          {/* Stays open for as long as the roster can still change. A number
+              gets mistyped, or somebody is left off, and there has to be a way
+              to put it right without tearing the election down. */}
+          {reg.locked ? null : (
             <>
               <label htmlFor="allowedNumbers" className="sr-only">
                 {a.regAllowedLabel}
@@ -99,6 +102,11 @@ export function ElectionFlow({
                 className="w-full rounded-xl border-2 border-line bg-paper p-3 font-mono text-sm text-ink"
               />
               <p className="mt-2 text-sm text-ink-soft">{a.regAllowedHelp}</p>
+              {hasAllowList ? (
+                <p className="mt-2 text-sm font-medium text-warn">
+                  {a.regAllowedReplace(reg.allowedCount)}
+                </p>
+              ) : null}
               <div className="mt-3">
                 <Button
                   tone="primary"
@@ -109,7 +117,7 @@ export function ElectionFlow({
                 </Button>
               </div>
             </>
-          ) : null}
+          )}
         </Step>
 
         {/* 2. open it ------------------------------------------------- */}
