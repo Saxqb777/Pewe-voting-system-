@@ -69,6 +69,11 @@ export function ElectionFlow({
   const registered = reg.approved.length;
   const tooFew = registered <= data.liveSelections;
   const hasBallots = data.turnout.ballots > 0;
+  // A trial run has to be undoable. Until the first ballot is cast, opening
+  // registration again wipes the register and starts it clean, so the way
+  // back from a practice round is one press rather than a reset that leaves
+  // everybody's name behind.
+  const canRestart = started && !hasBallots;
 
   const step: Record<number, State> = {
     1: hasAllowList ? "done" : "now",
@@ -123,14 +128,21 @@ export function ElectionFlow({
         {/* 2. open it ------------------------------------------------- */}
         <Step n={2} state={step[2]} title={a.step2}
           detail={started ? a.step2Done : a.step2Todo}>
-          {step[2] === "now" ? (
+          {step[2] === "now" || canRestart ? (
             <>
-              <Notice tone="warn">{a.regOpenWarning(REGISTRATION_PHRASE)}</Notice>
+              {canRestart ? (
+                <h4 className="mb-2 text-sm font-bold text-warn">{a.regRestartHeading}</h4>
+              ) : null}
+              <Notice tone="warn">
+                {canRestart
+                  ? a.regRestartWarning(registered, REGISTRATION_PHRASE)
+                  : a.regOpenWarning(REGISTRATION_PHRASE)}
+              </Notice>
               <input
                 value={phrase}
                 onChange={(e) => setPhrase(e.target.value)}
                 placeholder={a.regOpenPlaceholder}
-                aria-label={a.step2}
+                aria-label={canRestart ? a.regRestartHeading : a.step2}
                 className="mt-2 w-full rounded-xl border-2 border-line bg-paper px-3 py-2 text-base text-ink"
               />
               <div className="mt-3">
@@ -142,7 +154,7 @@ export function ElectionFlow({
                     setPhrase("");
                   }}
                 >
-                  {a.regOpenButton}
+                  {canRestart ? a.regRestartButton : a.regOpenButton}
                 </Button>
               </div>
             </>

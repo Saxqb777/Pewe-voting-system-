@@ -5,9 +5,12 @@ import { config } from "./config";
 
 const VOTER_COOKIE = "pv_s";
 const ADMIN_COOKIE = "pv_a";
+const REGISTERED_COOKIE = "pv_r";
 
 const VOTER_MAX_AGE = 60 * 60 * 6; // 6 hours
 const ADMIN_MAX_AGE = 60 * 60 * 8; // 8 hours
+// Long enough to cover registration, the wait, and both days of voting.
+const REGISTERED_MAX_AGE = 60 * 60 * 24 * 60; // 60 days
 
 export type VoterSession = {
   /** Random id for this browser session. Used only for rate limiting. */
@@ -77,6 +80,43 @@ export async function writeVoterSession(session: VoterSession): Promise<void> {
 export async function clearVoterSession(): Promise<void> {
   const jar = await cookies();
   jar.delete(VOTER_COOKIE);
+}
+
+// --------------------------------------------------------------------------
+// Registration
+// --------------------------------------------------------------------------
+
+/**
+ * A note left on the phone that registered, so that opening the link again
+ * says what happened rather than offering the form a second time.
+ *
+ * It holds the number, never the code, and decides nothing. The page reads
+ * the register itself before it says anything, so a mark left over from a
+ * registration that has since been cleared shows the form again rather than
+ * promising a place that no longer exists.
+ */
+export type RegistrationMark = { phone: string; pending?: boolean };
+
+export async function readRegistrationMark(): Promise<RegistrationMark | null> {
+  const jar = await cookies();
+  const value = unseal<RegistrationMark>(jar.get(REGISTERED_COOKIE)?.value);
+  return value && typeof value.phone === "string" ? value : null;
+}
+
+/** Only valid inside a server action or route. */
+export async function writeRegistrationMark(
+  mark: RegistrationMark,
+): Promise<void> {
+  const jar = await cookies();
+  jar.set(REGISTERED_COOKIE, seal(mark), {
+    ...cookieOptions,
+    maxAge: REGISTERED_MAX_AGE,
+  });
+}
+
+export async function clearRegistrationMark(): Promise<void> {
+  const jar = await cookies();
+  jar.delete(REGISTERED_COOKIE);
 }
 
 // --------------------------------------------------------------------------

@@ -12,8 +12,20 @@ const START: RegisterState = { phase: "form", error: null };
  *
  * A plain HTML form pointed at a server action, so it submits and works
  * before the page's JavaScript has loaded.
+ *
+ * `already` is what the register says about the person who registered on this
+ * phone on an earlier visit, read fresh from the database rather than from
+ * the phone. It is only ever consulted after the two phases below, so a man
+ * who has just this moment registered still sees his code: the screen in
+ * front of him always wins over an earlier visit.
  */
-export function RegisterForm() {
+export type EarlierVisit = {
+  name: string;
+  /** How it went then, and where it stands now. */
+  state: "registered" | "pending" | "approved";
+};
+
+export function RegisterForm({ already = null }: { already?: EarlierVisit | null }) {
   const [state, formAction] = useActionState(registerVoterForm, START);
   const r = strings.register;
 
@@ -33,7 +45,17 @@ export function RegisterForm() {
           <span className="mt-1 block font-normal">{r.codeWarningHi}</span>
         </p>
 
-        <p className="mt-4 text-left text-base text-ink-soft">{r.doneNext}</p>
+        <p className="mt-5 text-left text-lg font-semibold text-brand-dark">
+          {r.doneThanks}
+        </p>
+        <p className="mt-2 text-left text-base font-semibold text-ink">
+          {r.doneKeep}
+          <span className="mt-1 block font-normal text-ink-soft">{r.doneKeepHi}</span>
+        </p>
+        <p className="mt-3 text-left text-base text-ink-soft">
+          {r.doneNext}
+          <span className="mt-1 block">{r.doneNextHi}</span>
+        </p>
       </section>
     );
   }
@@ -44,6 +66,61 @@ export function RegisterForm() {
         <h2 className="text-2xl font-bold text-ink">{r.pendingTitle}</h2>
         <p className="mt-1 text-lg text-ink-soft">{state.name}</p>
         <p className="mt-4 text-base text-ink-soft">{r.pendingLead}</p>
+      </section>
+    );
+  }
+
+  if (already) {
+    const title =
+      already.state === "pending"
+        ? r.backPendingTitle
+        : already.state === "approved"
+          ? r.backApprovedTitle
+          : r.backTitle;
+
+    return (
+      <section className="rounded-xl border-2 border-brand bg-card p-5">
+        <h2 className="text-2xl font-bold text-ink">{title}</h2>
+        <p className="mt-1 text-lg text-ink-soft">{r.backLead(already.name)}</p>
+
+        {already.state === "pending" ? (
+          <p className="mt-4 text-base text-ink-soft">{r.pendingLead}</p>
+        ) : already.state === "approved" ? (
+          <>
+            <p className="mt-4 text-base text-ink-soft">
+              {r.backApprovedLead}
+              <span className="mt-1 block">{r.backApprovedLeadHi}</span>
+            </p>
+            <p className="mt-3 text-base text-ink-soft">
+              {r.doneNext}
+              <span className="mt-1 block">{r.doneNextHi}</span>
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="mt-4 text-base font-semibold text-ink">
+              {r.doneKeep}
+              <span className="mt-1 block font-normal text-ink-soft">{r.doneKeepHi}</span>
+            </p>
+            <p className="mt-3 text-base text-ink-soft">
+              {r.doneNext}
+              <span className="mt-1 block">{r.doneNextHi}</span>
+            </p>
+            <p className="mt-3 text-base text-ink-soft">
+              {r.backLost}
+              <span className="mt-1 block">{r.backLostHi}</span>
+            </p>
+          </>
+        )}
+
+        {/* A plain link rather than a button, so a shared phone still works
+            when the page's JavaScript has not loaded. */}
+        <a
+          href="/?again=1"
+          className="mt-5 inline-flex min-h-12 items-center rounded-xl border-2 border-line px-4 py-2 text-base font-semibold text-ink"
+        >
+          {r.backAnother}
+        </a>
       </section>
     );
   }

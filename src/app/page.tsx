@@ -1,6 +1,6 @@
 import { sql, ensureSchema } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
-import { readVoterSession } from "@/lib/session";
+import { readVoterSession, readRegistrationMark } from "@/lib/session";
 import { strings } from "@/lib/strings";
 import { Screen } from "@/components/Screen";
 import { EntryForm } from "@/components/EntryForm";
@@ -12,7 +12,11 @@ import { RegisterForm } from "@/components/RegisterForm";
 
 export const dynamic = "force-dynamic";
 
-export default async function EntryPage() {
+export default async function EntryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   await ensureSchema();
   const settings = await getSettings();
   const session = await readVoterSession();
@@ -23,6 +27,38 @@ export default async function EntryPage() {
   // Registration comes first. While it is open the ballot does not exist yet,
   // so the code box would have nothing to check against.
   if (settings.registrationOpen) {
+    // Phones are shared. A man who has registered sees what happened instead
+    // of an empty form, and anyone else holding the same phone can still get
+    // to the form through the link on that screen.
+    //
+    // What the phone remembers is only a number. The register itself is asked
+    // whether that number is still on it, so a mark left behind by a practice
+    // run that was later cleared shows the form again rather than telling
+    // somebody they are registered when they are not.
+    const mark = await readRegistrationMark();
+    const registerAnother = "again" in (await searchParams);
+    let already: { name: string; state: "registered" | "pending" | "approved" } | null =
+      null;
+
+    if (mark && !registerAnother) {
+      const [row] = await sql<{ name: string; status: string }[]>`
+        SELECT name, status FROM voters WHERE phone = ${mark.phone}
+      `;
+      if (row) {
+        already = {
+          name: row.name,
+          state:
+            row.status !== "approved"
+              ? "pending"
+              : // Approved by the admin after being held back, which means the
+                // code was never shown on this screen and has to be asked for.
+                mark.pending
+                ? "approved"
+                : "registered",
+        };
+      }
+    }
+
     return (
       <Screen mode={settings.mode}>
         <header className="mb-6 text-center">
@@ -33,12 +69,14 @@ export default async function EntryPage() {
           <p className="mt-2 text-lg text-ink-soft">{strings.register.title}</p>
         </header>
 
-        <p className="mb-6 rounded-xl bg-brand-soft px-4 py-3 text-base text-brand-dark">
-          {strings.register.lead}
-          <span className="mt-1 block">{strings.register.leadHi}</span>
-        </p>
+        {already ? null : (
+          <p className="mb-6 rounded-xl bg-brand-soft px-4 py-3 text-base text-brand-dark">
+            {strings.register.lead}
+            <span className="mt-1 block">{strings.register.leadHi}</span>
+          </p>
+        )}
 
-        <RegisterForm />
+        <RegisterForm already={already} />
 
         <SocietyNote />
         <ContactLine />

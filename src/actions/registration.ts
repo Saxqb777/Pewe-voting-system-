@@ -7,7 +7,7 @@ import { strings } from "@/lib/strings";
 import { getClientIp } from "@/lib/request-info";
 import { generateVoterIds } from "@/lib/voter-id-generator";
 import { normalisePhone, looksLikeAPhoneNumber, sameNumber } from "@/lib/phone";
-import { readAdminSession } from "@/lib/session";
+import { readAdminSession, writeRegistrationMark } from "@/lib/session";
 import { config } from "@/lib/config";
 import { REGISTRATION_PHRASE } from "@/lib/phrases";
 
@@ -19,8 +19,8 @@ import { REGISTRATION_PHRASE } from "@/lib/phrases";
  * pretending to have failed.
  */
 export type RegisterResult =
-  | { status: "registered"; code: string; name: string }
-  | { status: "pending"; name: string }
+  | { status: "registered"; code: string; name: string; phone: string }
+  | { status: "pending"; name: string; phone: string }
   | { status: "already" }
   | { status: "closed" }
   | { status: "bad_number" }
@@ -128,8 +128,8 @@ export async function registerVoter(
   revalidatePath("/admin");
 
   return match
-    ? { status: "registered", code, name }
-    : { status: "pending", name };
+    ? { status: "registered", code, name, phone }
+    : { status: "pending", name, phone };
 }
 
 /**
@@ -154,8 +154,15 @@ export async function registerVoterForm(
 
   switch (result.status) {
     case "registered":
+      // Left on this phone so that opening the link again says what happened
+      // instead of showing the form, which reads as though nothing was saved.
+      // The number rather than the code, so the page can ask the register
+      // whether this person is still on it and never claim a registration
+      // that has since been cleared.
+      await writeRegistrationMark({ phone: result.phone });
       return { phase: "done", code: result.code, name: result.name };
     case "pending":
+      await writeRegistrationMark({ phone: result.phone, pending: true });
       return { phase: "pending", name: result.name };
     case "already":
       return { phase: "form", error: r.already };

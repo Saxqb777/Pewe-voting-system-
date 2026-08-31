@@ -71,11 +71,36 @@ export const strings = {
       "Take a screenshot or write this down now. It is shown once only and cannot be shown again.",
     codeWarningHi:
       "Abhi screenshot le lijiye ya likh lijiye. Yeh sirf ek baar dikhta hai, dobara nahi dikhega.",
-    doneNext: "On election day, open this same link and enter this code.",
+    // What happens next, in the order it will happen to them. Without this a
+    // man who has just registered has no idea whether anything else is
+    // expected of him, so he opens the link again to check and finds the
+    // form waiting, which reads as though his registration did not take.
+    doneThanks: "Thank you for registering.",
+    doneKeep: "Keep your code safe with you. You will need it to vote.",
+    doneKeepHi: "Apna code sambhaal kar rakhiye. Vote dene ke liye yahi chahiye hoga.",
+    doneNext:
+      "There is nothing more to do for now. Once everyone has registered you will be told, and this same link will then show a countdown to when voting starts.",
+    doneNextHi:
+      "Abhi aur kuch nahi karna hai. Jab sab log register kar lenge to aapko bata diya jayega, aur yahi link phir voting shuru hone ka countdown dikhayega.",
 
     pendingTitle: "Sent to the admin",
     pendingLead:
       "Your number is not on the society's list, so the election admin has to approve you first. You will be told once that is done.",
+
+    // Shown when the link is opened again on the phone that registered.
+    backTitle: "You are already registered",
+    backLead: (name: string) => `You registered as ${name}.`,
+    backLost:
+      "Your code is not shown again. If you have lost it, please contact the election admin below.",
+    backLostHi:
+      "Code dobara nahi dikhaya jayega. Agar kho gaya hai to neeche diye gaye election admin se sampark kijiye.",
+    backAnother: "Somebody else on this phone needs to register",
+    backPendingTitle: "You are waiting to be approved",
+    backApprovedTitle: "You have been approved",
+    backApprovedLead:
+      "The election admin has put you on the voter list. Your code was never shown on this screen, so please contact the admin below and ask for it.",
+    backApprovedLeadHi:
+      "Election admin ne aapko voter list mein daal diya hai. Aapka code is screen par nahi dikhaya gaya tha, isliye neeche diye gaye admin se sampark karke code maang lijiye.",
   },
 
   entry: {
@@ -318,6 +343,16 @@ export const strings = {
       `This clears the current voter list and lets people put their own names in. Type ${phrase} to confirm.`,
     regOpenButton: "Open registration",
     regOpenPlaceholder: "OPEN REGISTRATION",
+
+    // Starting over. A trial run leaves real names on the register, and
+    // without this the only way back was a reset that cleared the ballots but
+    // left every one of those names sitting there.
+    regRestartHeading: "Start registration again",
+    regRestartWarning: (n: number, phrase: string) =>
+      n === 0
+        ? `This clears the register and starts registration fresh. Type ${phrase} to confirm.`
+        : `This removes all ${n} ${n === 1 ? "person" : "people"} registered so far, including their codes, and starts registration fresh. The list of allowed numbers is kept. Type ${phrase} to confirm.`,
+    regRestartButton: "Clear everyone and start again",
 
     regLiveCount: (n: number) =>
       `${n} ${n === 1 ? "person has" : "people have"} registered.`,
