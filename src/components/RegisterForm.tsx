@@ -3,7 +3,6 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { registerVoterForm, type RegisterState } from "@/actions/registration";
-import Link from "next/link";
 import { OpensAtNotice } from "./OpensAtNotice";
 import { strings } from "@/lib/strings";
 import {
@@ -102,6 +101,13 @@ export function RegisterForm({
         <h2 className="text-2xl font-bold text-ink">{title}</h2>
         <p className="mt-1 text-lg text-ink-soft">{r.backLead(already.name)}</p>
 
+        {/* The wait is the question he came back to ask, so it is answered on
+            the screen itself. A man still waiting to be approved has a nearer
+            question than this one, and is not shown it. */}
+        {opensAt && already.state !== "pending" ? (
+          <OpensAtNotice opensAt={opensAt} />
+        ) : null}
+
         {already.state === "pending" ? (
           <p className="mt-4 text-base text-ink-soft">{r.pendingLead}</p>
         ) : already.state === "approved" ? (
@@ -132,21 +138,6 @@ export function RegisterForm({
           </>
         )}
 
-        {/* The wait is what he came back to check, so the way to it is the
-            one thing on this screen to press. A real link, so it works before
-            the page's JavaScript has loaded, and it moves without leaving the
-            site or asking him to open anything again. */}
-        {already.state === "pending" ? null : (
-          <Link
-            href="/countdown"
-            className="mt-6 flex min-h-14 w-full flex-col items-center justify-center rounded-xl bg-brand px-4 py-3 text-center text-lg font-bold text-white active:bg-brand-dark"
-          >
-            {r.backCountdown}
-            <span className="mt-0.5 block text-base font-normal">
-              {r.backCountdownHi}
-            </span>
-          </Link>
-        )}
       </section>
     );
   }

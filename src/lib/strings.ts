@@ -103,16 +103,6 @@ export const strings = {
       "Your code is not shown again. If you have lost it, please contact the election admin below.",
     backLostHi:
       "Code dobara nahi dikhaya jayega. Agar kho gaya hai to neeche diye gaye election admin se sampark kijiye.",
-    backCountdown: "See the countdown to voting",
-    backCountdownHi: "Voting ka countdown dekhiye",
-    waitTitle: "You are registered. Now we wait",
-    waitTitleHi: "Aap register ho chuke hain. Ab intezaar",
-    waitLead:
-      "Come back to this same link when the counter runs out and put your code in.",
-    waitLeadHi:
-      "Jab yeh counter khatam ho jaye, isi link par wapas aaiye aur apna code daaliye.",
-    waitBack: "Go back",
-    waitBackHi: "Wapas jaiye",
     backPendingTitle: "You are waiting to be approved",
     backApprovedTitle: "You have been approved",
     backApprovedLead:
