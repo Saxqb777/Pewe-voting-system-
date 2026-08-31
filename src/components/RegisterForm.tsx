@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { registerVoterForm, type RegisterState } from "@/actions/registration";
 import Link from "next/link";
+import { OpensAtNotice } from "./OpensAtNotice";
 import { strings } from "@/lib/strings";
 import {
   COMMON_COUNTRIES,
@@ -31,7 +32,14 @@ export type EarlierVisit = {
   state: "registered" | "pending" | "approved";
 };
 
-export function RegisterForm({ already = null }: { already?: EarlierVisit | null }) {
+export function RegisterForm({
+  already = null,
+  opensAt = null,
+}: {
+  already?: EarlierVisit | null;
+  /** When voting starts, so the wait is answered the moment he registers. */
+  opensAt?: string | null;
+}) {
   const [state, formAction] = useActionState(registerVoterForm, START);
   const r = strings.register;
 
@@ -62,6 +70,11 @@ export function RegisterForm({ already = null }: { already?: EarlierVisit | null
           {r.doneNext}
           <span className="mt-1 block">{r.doneNextHi}</span>
         </p>
+
+        {/* Shown here rather than behind a button. The code is on this screen
+            once and once only, so nothing on it may lead a man away before he
+            has written it down. */}
+        {opensAt ? <OpensAtNotice opensAt={opensAt} /> : null}
       </section>
     );
   }

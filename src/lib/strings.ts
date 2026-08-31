@@ -88,9 +88,9 @@ export const strings = {
     doneKeep: "Keep your code safe with you. You will need it to vote.",
     doneKeepHi: "Apna code sambhaal kar rakhiye. Vote dene ke liye yahi chahiye hoga.",
     doneNext:
-      "There is nothing more to do for now. Once everyone has registered you will be told, and this same link will then show a countdown to when voting starts.",
+      "There is nothing more to do for now. Once everyone has registered you will be told. Voting opens on its own, and you come back to this same link and put your code in.",
     doneNextHi:
-      "Abhi aur kuch nahi karna hai. Jab sab log register kar lenge to aapko bata diya jayega, aur yahi link phir voting shuru hone ka countdown dikhayega.",
+      "Abhi aur kuch nahi karna hai. Jab sab log register kar lenge to aapko bata diya jayega. Voting apne aap shuru ho jayegi, phir isi link par wapas aakar apna code daaliye.",
 
     pendingTitle: "Sent to the admin",
     pendingLead:

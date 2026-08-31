@@ -1,4 +1,5 @@
 import { sql, ensureSchema } from "@/lib/db";
+import { config } from "@/lib/config";
 import { getSettings } from "@/lib/settings";
 import { readVoterSession, readRegistrationMark } from "@/lib/session";
 import { strings } from "@/lib/strings";
@@ -62,6 +63,13 @@ export default async function EntryPage({
       }
     }
 
+    // The moment confirming the roster will set, which is the hour the society
+    // announced. Handed to the form so a man who has just registered is told
+    // what he is waiting for without leaving the screen holding his code.
+    const opening = config.electionOpensAt;
+    const plannedOpening =
+      opening.getTime() > Date.now() ? opening.toISOString() : null;
+
     return (
       <Screen mode={settings.mode}>
         <header className="mb-6 text-center">
@@ -79,7 +87,7 @@ export default async function EntryPage({
           </p>
         )}
 
-        <RegisterForm already={already} />
+        <RegisterForm already={already} opensAt={plannedOpening} />
 
         <SocietyNote />
         <ContactLine />
