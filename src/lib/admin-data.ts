@@ -663,37 +663,58 @@ export async function getReport(): Promise<Report> {
   let paceHi = "";
 
   if (startedAt) {
-    const span = deadline.getTime() - startedAt.getTime();
-    const gone = now - startedAt.getTime();
-    const throughWindow = span > 0 ? Math.min(1, Math.max(0, gone / span)) : 1;
-    const shouldBe = Math.round(expected * throughWindow);
-    const behind = shouldBe - onRoster;
     const left = Math.max(0, deadline.getTime() - now);
-    const by = readableMoment(deadline);
+    const elapsed = Math.max(1, now - startedAt.getTime());
+    const stillNeeded = Math.max(0, expected - onRoster);
 
+    // Read the way a chase is read: what is left to get, over the time
+    // remaining, set beside what is actually arriving. Counted per day while
+    // days remain and per hour once the last one starts, because "3 a day"
+    // means nothing at seven in the morning on the day itself.
+    const perHour = left > 0 && left < 2 * 86400e3;
+    const unit = perHour ? 3600e3 : 86400e3;
+    const timeLeft = left / unit;
+    const needRate = timeLeft > 0 ? Math.ceil(stillNeeded / timeLeft) : stillNeeded;
+    const comingRate = Math.round(onRoster / (elapsed / unit));
+
+    const by = readableMoment(deadline);
     target.push(
       line(strings.admin.reportTargetBy(by), hi.targetBy(by), expected, null),
-      line(strings.admin.reportShouldBe, hi.shouldBe, shouldBe, ofExpected),
-      line(strings.admin.reportWhereWeAre, hi.whereWeAre, onRoster, ofExpected),
-      behind > 0
-        ? line(strings.admin.reportBehind, hi.behind, behind, ofExpected)
-        : line(strings.admin.reportAhead, hi.ahead, -behind, ofExpected),
+      line(strings.admin.reportSoFar, hi.soFar, onRoster, ofExpected),
+      line(strings.admin.reportStillNeeded, hi.stillNeeded, stillNeeded, ofExpected),
+      line(
+        perHour ? strings.admin.reportNeededPerHour : strings.admin.reportNeededPerDay,
+        perHour ? hi.neededPerHour : hi.neededPerDay,
+        needRate,
+        null,
+      ),
+      line(
+        perHour ? strings.admin.reportComingPerHour : strings.admin.reportComingPerDay,
+        perHour ? hi.comingPerHour : hi.comingPerDay,
+        comingRate,
+        null,
+      ),
     );
 
-    const gap = describeGap(left);
-    const gapHi = describeGapHi(left);
     if (left === 0) {
       pace = strings.admin.reportPaceOver(onRoster, expected);
       paceHi = hi.paceOver(onRoster, expected);
-    } else if (behind > 0) {
-      pace = strings.admin.reportPaceBehind(behind, gap);
-      paceHi = hi.paceBehind(behind, gapHi);
-    } else if (behind < 0) {
-      pace = strings.admin.reportPaceAhead(-behind, gap);
-      paceHi = hi.paceAhead(-behind, gapHi);
+    } else if (stillNeeded === 0) {
+      pace = strings.admin.reportPaceReached(onRoster, expected);
+      paceHi = hi.paceReached(onRoster, expected);
     } else {
-      pace = strings.admin.reportPaceLevel(gap);
-      paceHi = hi.paceLevel(gapHi);
+      pace = strings.admin.reportPaceNeeded(
+        stillNeeded,
+        describeGap(left),
+        strings.admin.reportRate(needRate, perHour ? "hour" : "day"),
+        strings.admin.reportRate(comingRate, perHour ? "hour" : "day"),
+      );
+      paceHi = hi.paceNeeded(
+        stillNeeded,
+        describeGapHi(left),
+        hi.rate(needRate, perHour ? "ghanta" : "din"),
+        hi.rate(comingRate, perHour ? "ghanta" : "din"),
+      );
     }
   }
 

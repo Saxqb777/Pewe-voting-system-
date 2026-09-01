@@ -449,18 +449,21 @@ export const strings = {
       `Shares are worked out against the ${n} people the society expects to take part.`,
     reportTarget: "Against the target",
     reportTargetBy: (when: string) => `Target by ${when}`,
-    reportShouldBe: "Where we should be by now",
-    reportWhereWeAre: "Where we are",
-    reportBehind: "Behind by",
-    reportAhead: "Ahead by",
-    reportPaceBehind: (n: number, left: string) =>
-      `${n} short of where we should be by now, with ${left} left to go.`,
-    reportPaceAhead: (n: number, left: string) =>
-      `${n} ahead of where we should be by now, with ${left} left to go.`,
-    reportPaceLevel: (left: string) =>
-      `Exactly where we should be by now, with ${left} left to go.`,
+    reportSoFar: "Registered so far",
+    reportStillNeeded: "Still needed",
+    reportNeededPerDay: "Needed per day",
+    reportNeededPerHour: "Needed per hour",
+    reportComingPerDay: "Coming in per day so far",
+    reportComingPerHour: "Coming in per hour so far",
+    // Read like a required run rate: what is left, over the balls remaining,
+    // set against what is actually being scored.
+    reportPaceNeeded: (need: number, left: string, rate: string, coming: string) =>
+      `${need} more needed in ${left}. That is ${rate}, and ${coming} are coming in.`,
+    reportPaceReached: (have: number, expected: number) =>
+      `Target reached. ${have} registered against the ${expected} expected.`,
     reportPaceOver: (have: number, expected: number) =>
       `The window has closed with ${have} of the ${expected} expected.`,
+    reportRate: (n: number, per: "day" | "hour") => `${n} a ${per}`,
     reportRegistration: "Registration",
     reportVoting: "Voting",
     reportCountries: "Where they are",
@@ -479,18 +482,20 @@ export const strings = {
         `Sabhi percentage un ${n} logon ke muqable nikale gaye hain jinke aane ki ummeed hai.`,
       target: "Target ke muqable",
       targetBy: (when: string) => `${when} tak ka target`,
-      shouldBe: "Ab tak kitne hone chahiye the",
-      whereWeAre: "Abhi kitne hain",
-      behind: "Kitne kam hain",
-      ahead: "Kitne zyada hain",
-      paceBehind: (n: number, left: string) =>
-        `Ab tak jitne hone chahiye the us se ${n} kam hain, aur ${left} baaki hai.`,
-      paceAhead: (n: number, left: string) =>
-        `Ab tak jitne hone chahiye the us se ${n} zyada hain, aur ${left} baaki hai.`,
-      paceLevel: (left: string) =>
-        `Theek utne hi hain jitne ab tak hone chahiye the, aur ${left} baaki hai.`,
+      soFar: "Ab tak kitne register hue",
+      stillNeeded: "Aur kitne chahiye",
+      neededPerDay: "Har din kitne chahiye",
+      neededPerHour: "Har ghante kitne chahiye",
+      comingPerDay: "Abhi har din kitne aa rahe hain",
+      comingPerHour: "Abhi har ghante kitne aa rahe hain",
+      paceNeeded: (need: number, left: string, rate: string, coming: string) =>
+        `${left} mein ${need} aur chahiye. Yaani ${rate}, aur abhi ${coming} aa rahe hain.`,
+      paceReached: (have: number, expected: number) =>
+        `Target pura ho gaya. ${expected} ki ummeed thi, ${have} register ho chuke.`,
       paceOver: (have: number, expected: number) =>
         `Waqt khatam ho chuka hai. ${expected} mein se ${have} log aaye.`,
+      rate: (n: number, per: "din" | "ghanta") =>
+        per === "din" ? `${n} har din` : `${n} har ghante`,
       registration: "Registration",
       voting: "Voting",
       countries: "Log kahan hain",
