@@ -2,7 +2,11 @@
 
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { registerVoterForm, type RegisterState } from "@/actions/registration";
+import {
+  registerVoterForm,
+  confirmCodeSeen,
+  type RegisterState,
+} from "@/actions/registration";
 import { OpensAtNotice } from "./OpensAtNotice";
 import { strings } from "@/lib/strings";
 import {
@@ -29,6 +33,11 @@ export type EarlierVisit = {
   name: string;
   /** How it went then, and where it stands now. */
   state: "registered" | "pending" | "approved";
+  /**
+   * Only carried for somebody the admin approved after holding him back. He
+   * never saw a code at registration, so this is his one showing of it.
+   */
+  code?: string;
 };
 
 export function RegisterForm({
@@ -116,6 +125,39 @@ export function RegisterForm({
               {r.backApprovedLead}
               <span className="mt-1 block">{r.backApprovedLeadHi}</span>
             </p>
+
+            {already.code ? (
+              <>
+                <p className="mt-5 text-center text-base font-semibold text-ink">
+                  {r.codeLabel}
+                </p>
+                <p className="mt-1 select-all text-center font-mono text-5xl font-bold tracking-widest text-brand">
+                  {already.code}
+                </p>
+                <p className="mt-5 rounded-lg bg-warn-soft px-4 py-3 text-base font-semibold text-warn">
+                  {r.backApprovedWarn}
+                  <span className="mt-1 block font-normal">{r.backApprovedWarnHi}</span>
+                </p>
+                {/* He says when he has it, not the screen. A code taken away
+                    before he wrote it down puts him back where he started. */}
+                <p className="mt-3 text-sm text-ink-soft">
+                  {r.backApprovedKeep}
+                  <span className="mt-1 block">{r.backApprovedKeepHi}</span>
+                </p>
+                <form action={confirmCodeSeen}>
+                  <button
+                    type="submit"
+                    className="mt-3 flex min-h-14 w-full flex-col items-center justify-center rounded-xl border-2 border-line px-4 py-3 text-base font-semibold text-ink"
+                  >
+                    {r.backApprovedSaved}
+                    <span className="block text-sm font-normal text-ink-soft">
+                      {r.backApprovedSavedHi}
+                    </span>
+                  </button>
+                </form>
+              </>
+            ) : null}
+
             <p className="mt-3 text-base text-ink-soft">
               {r.doneNext}
               <span className="mt-1 block">{r.doneNextHi}</span>

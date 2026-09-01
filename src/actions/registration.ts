@@ -9,7 +9,11 @@ import { generateVoterIds } from "@/lib/voter-id-generator";
 import { normalisePhone, looksLikeAPhoneNumber, sameNumber } from "@/lib/phone";
 import { normaliseCountry } from "@/lib/countries";
 import { toInternational } from "@/lib/phone-parse";
-import { readAdminSession, writeRegistrationMark } from "@/lib/session";
+import {
+  readAdminSession,
+  readRegistrationMark,
+  writeRegistrationMark,
+} from "@/lib/session";
 import { config } from "@/lib/config";
 import { REGISTRATION_PHRASE } from "@/lib/phrases";
 
@@ -188,6 +192,23 @@ export async function registerVoterForm(
     default:
       return { phase: "form", error: r.badNumber };
   }
+}
+
+/**
+ * The man says he has his code, so stop showing it to him.
+ *
+ * Somebody the admin approved after holding him back never saw a code at
+ * registration, so he is shown it when he comes back. He decides when that is
+ * finished rather than the screen deciding for him: a code taken away before
+ * he had written it down would put him right back where he started.
+ *
+ * Nothing about the register changes here. Only the note on his own phone.
+ */
+export async function confirmCodeSeen(): Promise<void> {
+  const mark = await readRegistrationMark();
+  if (!mark) return;
+  await writeRegistrationMark({ phone: mark.phone });
+  revalidatePath("/");
 }
 
 // ---------------------------------------------------------------- admin side

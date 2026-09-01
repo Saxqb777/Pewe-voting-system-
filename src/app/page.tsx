@@ -41,24 +41,30 @@ export default async function EntryPage({
     // somebody they are registered when they are not.
     const mark = await readRegistrationMark();
     const registerAnother = "again" in (await searchParams);
-    let already: { name: string; state: "registered" | "pending" | "approved" } | null =
-      null;
+    let already: {
+      name: string;
+      state: "registered" | "pending" | "approved";
+      code?: string;
+    } | null = null;
 
     if (mark && !registerAnother) {
-      const [row] = await sql<{ name: string; status: string }[]>`
-        SELECT name, status FROM voters WHERE phone = ${mark.phone}
+      const [row] = await sql<{ name: string; status: string; voter_id: string }[]>`
+        SELECT name, status, voter_id FROM voters WHERE phone = ${mark.phone}
       `;
       if (row) {
+        // Approved by the admin after being held back, which means no code was
+        // ever shown on this screen. It is shown now, and only now: the phone
+        // stops carrying that mark the moment he says he has written it down.
+        const approvedSince = row.status === "approved" && mark.pending;
         already = {
           name: row.name,
           state:
             row.status !== "approved"
               ? "pending"
-              : // Approved by the admin after being held back, which means the
-                // code was never shown on this screen and has to be asked for.
-                mark.pending
+              : approvedSince
                 ? "approved"
                 : "registered",
+          ...(approvedSince ? { code: row.voter_id } : {}),
         };
       }
     }

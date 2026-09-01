@@ -106,9 +106,20 @@ export const strings = {
     backPendingTitle: "You are waiting to be approved",
     backApprovedTitle: "You have been approved",
     backApprovedLead:
-      "The election admin has put you on the voter list. Your code was never shown on this screen, so please contact the admin below and ask for it.",
+      "The election admin has put you on the voter list. Here is your voting code.",
     backApprovedLeadHi:
-      "Election admin ne aapko voter list mein daal diya hai. Aapka code is screen par nahi dikhaya gaya tha, isliye neeche diye gaye admin se sampark karke code maang lijiye.",
+      "Election admin ne aapko voter list mein daal diya hai. Yeh raha aapka voting code.",
+    // Not the registration warning. That one says the code is shown once and
+    // never again, which is not true here: this screen holds it until he says
+    // he has it, and the line under it explains that.
+    backApprovedWarn: "Take a screenshot or write this down now.",
+    backApprovedWarnHi: "Abhi screenshot le lijiye ya likh lijiye.",
+    backApprovedSaved: "I have saved my code",
+    backApprovedSavedHi: "Maine apna code save kar liya",
+    backApprovedKeep:
+      "This screen keeps your code until you press the button below. After that it is not shown again.",
+    backApprovedKeepHi:
+      "Neeche wala button dabane tak yeh screen aapka code dikhati rahegi. Uske baad dobara nahi dikhega.",
   },
 
   entry: {
