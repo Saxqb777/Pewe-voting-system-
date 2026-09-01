@@ -172,15 +172,21 @@ function ReportPanel({ data }: { data: DashboardData }) {
         <ReportBlock title={a.reportCountries} rows={r.countries} />
       ) : null}
 
-      <div className="mt-5">
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <a
+          href="/api/admin/report/pdf"
+          className="inline-flex min-h-12 items-center rounded-xl bg-brand px-4 py-2 text-base font-semibold text-white"
+        >
+          {a.reportDownload}
+        </a>
         <a
           href="/api/admin/report"
           className="inline-flex min-h-12 items-center rounded-xl border-2 border-line bg-card px-4 py-2 text-base font-semibold text-ink"
         >
-          {a.reportDownload}
+          {a.reportDownloadCsv}
         </a>
-        <p className="mt-2 text-sm text-ink-soft">{a.reportPrivacy}</p>
       </div>
+      <p className="mt-2 text-sm text-ink-soft">{a.reportPrivacy}</p>
     </Section>
   );
 }

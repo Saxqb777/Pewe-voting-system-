@@ -451,7 +451,8 @@ export const strings = {
     reportVoting: "Voting",
     reportCountries: "Where they are",
     reportOutOf: (what: string) => `of ${what}`,
-    reportDownload: "Download this report as CSV",
+    reportDownload: "Download this report as PDF",
+    reportDownloadCsv: "or as a spreadsheet",
     reportPrivacy:
       "This report holds counts only. No name, no number, no code, and nothing at all about how anybody voted.",
 
