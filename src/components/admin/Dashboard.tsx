@@ -107,6 +107,7 @@ export function Dashboard({ initial }: { initial: DashboardData }) {
         // accident on a half built list.
         <>
           <ElectionFlow data={data} run={run} pending={pending} />
+          <ReportPanel data={data} />
           <RosterPanel data={data} />
           <ResetPanel data={data} run={run} pending={pending} />
           <AuditPanel data={data} />
@@ -115,6 +116,7 @@ export function Dashboard({ initial }: { initial: DashboardData }) {
         <>
           <ElectionFlow data={data} run={run} pending={pending} />
           <TurnoutPanel data={data} />
+          <ReportPanel data={data} />
           <PendingPanel voters={pendingVoters} total={data.turnout.total} />
           <VoterToolsPanel data={data} run={run} pending={pending} />
           <CountriesPanel data={data} />
@@ -136,6 +138,98 @@ export function Dashboard({ initial }: { initial: DashboardData }) {
 }
 
 type RunFn = (action: () => Promise<ActionResult>) => void;
+
+/**
+ * Where the election stands, in figures, with a copy to take away.
+ *
+ * Counts and shares only. Nothing in here names anybody or says a word about
+ * how a single vote was cast, so it can go to the whole committee as it is.
+ */
+function ReportPanel({ data }: { data: DashboardData }) {
+  const a = strings.admin;
+  const r = data.report;
+  const when = new Date(r.takenAt).toLocaleString("en-GB", {
+    timeZone: "Asia/Kolkata",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+
+  return (
+    <Section title={a.reportHeading}>
+      <p className="text-sm text-ink-soft">{a.reportTaken(`${when} India time`)}</p>
+      <p className="mt-1 text-base font-semibold text-ink">
+        {a.reportStage}: {r.stage}
+      </p>
+      <p className="mt-1 text-sm text-ink-soft">{a.reportExpected(r.expected)}</p>
+
+      <ReportBlock title={a.reportRegistration} rows={r.registration} />
+      <ReportBlock title={a.reportVoting} rows={r.voting} />
+      {r.countries.length > 0 ? (
+        <ReportBlock title={a.reportCountries} rows={r.countries} />
+      ) : null}
+
+      <div className="mt-5">
+        <a
+          href="/api/admin/report"
+          className="inline-flex min-h-12 items-center rounded-xl border-2 border-line bg-card px-4 py-2 text-base font-semibold text-ink"
+        >
+          {a.reportDownload}
+        </a>
+        <p className="mt-2 text-sm text-ink-soft">{a.reportPrivacy}</p>
+      </div>
+    </Section>
+  );
+}
+
+function ReportBlock({
+  title,
+  rows,
+}: {
+  title: string;
+  rows: DashboardData["report"]["registration"];
+}) {
+  return (
+    <div className="mt-5">
+      <h3 className="text-sm font-bold uppercase tracking-wide text-ink-soft">
+        {title}
+      </h3>
+      <ul className="mt-2 space-y-2">
+        {rows.map((row) => (
+          <li key={`${title}-${row.label}`}>
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <span className="text-base text-ink">{row.label}</span>
+              <span className="flex items-baseline gap-2">
+                <span className="text-lg font-bold tabular-nums text-ink">
+                  {row.count}
+                </span>
+                {row.percent === null ? null : (
+                  <span className="text-sm tabular-nums text-ink-soft">
+                    {row.percent}% {strings.admin.reportOutOf(row.outOf)}
+                  </span>
+                )}
+              </span>
+            </div>
+            {row.percent === null ? null : (
+              <div
+                aria-hidden
+                className="mt-1 h-2 w-full overflow-hidden rounded-full bg-paper"
+              >
+                <div
+                  className="h-full rounded-full bg-brand"
+                  style={{ width: `${Math.min(100, row.percent)}%` }}
+                />
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 function TurnoutPanel({ data }: { data: DashboardData }) {
   const { voted, total, ballots } = data.turnout;

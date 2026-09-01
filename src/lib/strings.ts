@@ -439,6 +439,22 @@ export const strings = {
       `This election is LIVE. Resetting will destroy real votes. If you are certain, also type ${phrase}.`,
     resetPhraseWrong: "The confirmation phrase does not match.",
 
+    // ---------------------------------------------------------------
+    // The report. Counts and shares, never a name or a number.
+    // ---------------------------------------------------------------
+    reportHeading: "Report",
+    reportTaken: (when: string) => `As it stands on ${when}`,
+    reportStage: "Stage",
+    reportExpected: (n: number) =>
+      `Shares are worked out against the ${n} people the society expects to take part.`,
+    reportRegistration: "Registration",
+    reportVoting: "Voting",
+    reportCountries: "Where they are",
+    reportOutOf: (what: string) => `of ${what}`,
+    reportDownload: "Download this report as CSV",
+    reportPrivacy:
+      "This report holds counts only. No name, no number, no code, and nothing at all about how anybody voted.",
+
     auditHeading: "Activity log",
     auditEmpty: "Nothing logged yet.",
   },

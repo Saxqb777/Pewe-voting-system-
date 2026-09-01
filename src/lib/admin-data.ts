@@ -375,6 +375,7 @@ export type Dashboard = {
   };
   audit: { action: string; detail: string; at: string }[];
   countries: CountryCount[];
+  report: Report;
 };
 
 /**
@@ -447,8 +448,9 @@ export async function getDashboard(): Promise<Dashboard> {
     FROM voters ORDER BY name
   `;
 
-  const [settings, turnout, flags, auditRows, voterRows, countries, registration] =
-    await Promise.all([
+  const [
+    settings, turnout, flags, auditRows, voterRows, countries, registration, report,
+  ] = await Promise.all([
       getSettings(),
       getTurnout(),
       getFlags(),
@@ -456,6 +458,7 @@ export async function getDashboard(): Promise<Dashboard> {
       voterQuery,
       getCountryCounts(),
       getRegistrationState(),
+      getReport(),
     ]);
 
   return {
@@ -497,10 +500,163 @@ export async function getDashboard(): Promise<Dashboard> {
       })),
     },
     countries,
+    report,
     audit: auditRows.map((a) => ({
       action: a.action,
       detail: a.detail,
       at: a.at.toISOString(),
+    })),
+  };
+}
+
+// --------------------------------------------------------------------------
+// The report
+// --------------------------------------------------------------------------
+
+export type ReportLine = {
+  label: string;
+  count: number;
+  /** Share of the figure this line is measured against, or null when none. */
+  percent: number | null;
+  /** What that percentage is out of, for anyone reading the export later. */
+  outOf: string;
+};
+
+export type Report = {
+  takenAt: string;
+  stage: string;
+  expected: number;
+  registration: ReportLine[];
+  voting: ReportLine[];
+  countries: ReportLine[];
+};
+
+const share = (part: number, whole: number): number | null =>
+  whole > 0 ? Math.round((part / whole) * 1000) / 10 : null;
+
+/**
+ * Where the election has got to, in figures.
+ *
+ * Everything here is counted from the register alone. The ballot box is asked
+ * one question, how many ballots it holds, which is the same number the
+ * turnout panel already shows and says nothing about anybody's choices.
+ */
+export async function getReport(): Promise<Report> {
+  await ensureSchema();
+
+  const settings = await getSettings();
+  const expected = config.expectedTurnout;
+
+  const [row] = await sql<
+    {
+      allowed: number;
+      approved: number;
+      pending: number;
+      voted: number;
+      ballots: number;
+      off_list: number;
+    }[]
+  >`
+    SELECT
+      (SELECT COUNT(*)::int FROM allowed_numbers) AS allowed,
+      (SELECT COUNT(*)::int FROM voters WHERE status = 'approved') AS approved,
+      (SELECT COUNT(*)::int FROM voters WHERE status <> 'approved') AS pending,
+      (SELECT COUNT(*)::int FROM voters WHERE has_voted) AS voted,
+      (SELECT COUNT(*)::int FROM ballots) AS ballots,
+      (SELECT COUNT(*)::int FROM voters v
+        WHERE NOT EXISTS (
+          SELECT 1 FROM allowed_numbers a WHERE a.phone = v.phone
+        )) AS off_list
+  `;
+  const counts = row ?? {
+    allowed: 0, approved: 0, pending: 0, voted: 0, ballots: 0, off_list: 0,
+  };
+
+  const [stillOut] = await sql<{ n: number }[]>`
+    SELECT COUNT(*)::int AS n FROM allowed_numbers a
+    WHERE NOT EXISTS (SELECT 1 FROM voters v WHERE v.phone = a.phone)
+  `;
+
+  const stage = settings.registrationOpen
+    ? "Registration is open"
+    : settings.votingEnded
+      ? "Voting is closed"
+      : settings.votingOpen
+        ? "Voting is open"
+        : settings.rosterLocked
+          ? "Voter list confirmed, waiting for voting to open"
+          : "Not started";
+
+  const countries = await sql<{ country: string | null; n: number }[]>`
+    SELECT country, COUNT(*)::int AS n FROM voters
+    GROUP BY country ORDER BY COUNT(*) DESC, country NULLS LAST
+  `;
+
+  const onRoster = counts.approved;
+
+  return {
+    takenAt: new Date().toISOString(),
+    stage,
+    expected,
+    registration: [
+      { label: "Expected to take part", count: expected, percent: null, outOf: "" },
+      {
+        label: "Numbers allowed to register",
+        count: counts.allowed,
+        percent: share(counts.allowed, expected),
+        outOf: "expected",
+      },
+      {
+        label: "Registered and on the roster",
+        count: onRoster,
+        percent: share(onRoster, expected),
+        outOf: "expected",
+      },
+      {
+        label: "Waiting for approval",
+        count: counts.pending,
+        percent: share(counts.pending, expected),
+        outOf: "expected",
+      },
+      {
+        label: "On your list, not registered yet",
+        count: stillOut?.n ?? 0,
+        percent: share(stillOut?.n ?? 0, counts.allowed),
+        outOf: "allowed numbers",
+      },
+      {
+        label: "Registered from a number not on your list",
+        count: counts.off_list,
+        percent: share(counts.off_list, onRoster + counts.pending),
+        outOf: "everybody registered",
+      },
+    ],
+    voting: [
+      { label: "On the roster", count: onRoster, percent: null, outOf: "" },
+      {
+        label: "Voted",
+        count: counts.voted,
+        percent: share(counts.voted, onRoster),
+        outOf: "the roster",
+      },
+      {
+        label: "Not voted yet",
+        count: Math.max(0, onRoster - counts.voted),
+        percent: share(Math.max(0, onRoster - counts.voted), onRoster),
+        outOf: "the roster",
+      },
+      {
+        label: "Ballots in the ballot box",
+        count: counts.ballots,
+        percent: share(counts.ballots, onRoster),
+        outOf: "the roster",
+      },
+    ],
+    countries: countries.map((c) => ({
+      label: c.country ?? "Not given",
+      count: c.n,
+      percent: share(c.n, onRoster + counts.pending),
+      outOf: "everybody registered",
     })),
   };
 }

@@ -79,6 +79,16 @@ export const config = {
   get selectionsRequired() {
     return intOr("SELECTIONS_REQUIRED", 17);
   },
+  /**
+   * How many people the society expects to take part in the end.
+   *
+   * Only ever used to work out how far along the registration is. Nothing is
+   * refused for being over it and nothing waits for it to be reached, so a
+   * rough figure is the right kind of figure here.
+   */
+  get expectedTurnout() {
+    return intOr("EXPECTED_TURNOUT", 150);
+  },
 } as const;
 
 /** Wrong ID attempts allowed from one browser session before it is locked. */
