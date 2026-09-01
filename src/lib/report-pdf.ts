@@ -71,29 +71,35 @@ function rightText(
   });
 }
 
-function block(ctx: Ctx, title: string, rows: ReportLine[]): void {
-  if (rows.length === 0) return;
-  room(ctx, 40 + rows.length * 26);
+/** Which language this copy is written in. Never both on one page. */
+export type ReportLang = "en" | "hi";
 
-  ctx.y -= 22;
+function block(ctx: Ctx, title: string, rows: ReportLine[], lang: ReportLang): void {
+  if (rows.length === 0) return;
+  room(ctx, 36 + rows.length * 23);
+
+  ctx.y -= 18;
   text(ctx, title.toUpperCase(), { size: 9, font: ctx.bold, color: SOFT });
-  ctx.y -= 6;
+  ctx.y -= 5;
   ctx.page.drawLine({
     start: { x: MARGIN, y: ctx.y },
     end: { x: A4[0] - MARGIN, y: ctx.y },
     thickness: 1,
     color: RULE,
   });
-  ctx.y -= 16;
+  ctx.y -= 14;
 
   const right = A4[0] - MARGIN;
   for (const row of rows) {
-    room(ctx, 30);
-    text(ctx, row.label, { size: 10.5 });
+    room(ctx, 26);
+    text(ctx, lang === "hi" ? row.labelHi : row.label, { size: 10.5 });
 
     const count = String(row.count);
-    const share =
-      row.percent === null ? "" : `${row.percent}% ${strings.admin.reportOutOf(row.outOf)}`;
+    const outOf =
+      lang === "hi"
+        ? strings.admin.hi.outOf(row.outOfHi)
+        : strings.admin.reportOutOf(row.outOf);
+    const share = row.percent === null ? "" : `${row.percent}% ${outOf}`;
     if (share) {
       rightText(ctx, share, right, { size: 9, color: SOFT });
       rightText(ctx, count, right - ctx.regular.widthOfTextAtSize(share, 9) - 8, {
@@ -117,14 +123,34 @@ function block(ctx: Ctx, title: string, rows: ReportLine[]): void {
         height: 4,
         color: BRAND,
       });
-      ctx.y -= 19;
+      ctx.y -= 16;
     } else {
-      ctx.y -= 22;
+      ctx.y -= 19;
     }
   }
 }
 
-export async function reportPdf(report: Report, when: string): Promise<Uint8Array> {
+export async function reportPdf(
+  report: Report,
+  when: string,
+  lang: ReportLang = "en",
+): Promise<Uint8Array> {
+  const a = strings.admin;
+  const hi = a.hi;
+  const say = {
+    heading: lang === "hi" ? hi.heading : a.reportHeading,
+    taken: lang === "hi" ? hi.taken(when) : a.reportTaken(when),
+    stage: lang === "hi" ? hi.stage : a.reportStage,
+    stageValue: lang === "hi" ? report.stageHi : report.stage,
+    expected: lang === "hi" ? hi.expected(report.expected) : a.reportExpected(report.expected),
+    pace: lang === "hi" ? report.paceHi : report.pace,
+    target: lang === "hi" ? hi.target : a.reportTarget,
+    registration: lang === "hi" ? hi.registration : a.reportRegistration,
+    voting: lang === "hi" ? hi.voting : a.reportVoting,
+    countries: lang === "hi" ? hi.countries : a.reportCountries,
+    privacy: lang === "hi" ? hi.privacy : a.reportPrivacy,
+  };
+
   const doc = await PDFDocument.create();
   const regular = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
@@ -164,17 +190,23 @@ export async function reportPdf(report: Report, when: string): Promise<Uint8Arra
 
   // --- what this is -------------------------------------------------------
   ctx.y -= 26;
-  text(ctx, strings.admin.reportHeading, { size: 18, font: bold });
+  text(ctx, say.heading, { size: 18, font: bold });
   ctx.y -= 16;
-  text(ctx, strings.admin.reportTaken(when), { size: 9.5, color: SOFT });
+  text(ctx, say.taken, { size: 9.5, color: SOFT });
   ctx.y -= 18;
-  text(ctx, `${strings.admin.reportStage}: ${report.stage}`, { size: 11, font: bold });
+  text(ctx, `${say.stage}: ${say.stageValue}`, { size: 11, font: bold });
   ctx.y -= 14;
-  text(ctx, strings.admin.reportExpected(report.expected), { size: 9.5, color: SOFT });
+  text(ctx, say.expected, { size: 9.5, color: SOFT });
 
-  block(ctx, strings.admin.reportRegistration, report.registration);
-  block(ctx, strings.admin.reportVoting, report.voting);
-  block(ctx, strings.admin.reportCountries, report.countries);
+  if (say.pace) {
+    ctx.y -= 18;
+    text(ctx, say.pace, { size: 11, font: bold, color: BRAND });
+  }
+
+  block(ctx, say.target, report.target, lang);
+  block(ctx, say.registration, report.registration, lang);
+  block(ctx, say.voting, report.voting, lang);
+  block(ctx, say.countries, report.countries, lang);
 
   // --- what it is not -----------------------------------------------------
   // Pinned to the foot of the page rather than following the last figure, so
@@ -189,7 +221,7 @@ export async function reportPdf(report: Report, when: string): Promise<Uint8Arra
     color: RULE,
   });
   ctx.y -= 16;
-  text(ctx, strings.admin.reportPrivacy, { size: 9, color: SOFT });
+  text(ctx, say.privacy, { size: 9, color: SOFT });
   ctx.y -= 13;
   text(
     ctx,

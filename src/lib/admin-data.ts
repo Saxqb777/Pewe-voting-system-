@@ -6,6 +6,21 @@ import {
   SHARED_IP_FLAG_THRESHOLD,
   VOTER_FAILED_ATTEMPT_FLAG_THRESHOLD,
 } from "./config";
+import { describeGap, describeGapHi } from "./countdown";
+import { strings } from "./strings";
+
+/** A moment in the hour the village agreed on, which is India time. */
+function readableMoment(when: Date): string {
+  return `${when.toLocaleString("en-GB", {
+    timeZone: "Asia/Kolkata",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  })} India time`;
+}
 
 export type Turnout = { total: number; voted: number; ballots: number };
 
@@ -515,17 +530,25 @@ export async function getDashboard(): Promise<Dashboard> {
 
 export type ReportLine = {
   label: string;
+  /** The same line for a reader who would rather have it in Hinglish. */
+  labelHi: string;
   count: number;
   /** Share of the figure this line is measured against, or null when none. */
   percent: number | null;
   /** What that percentage is out of, for anyone reading the export later. */
   outOf: string;
+  outOfHi: string;
 };
 
 export type Report = {
   takenAt: string;
   stage: string;
+  stageHi: string;
   expected: number;
+  /** How the pace reads in one sentence, or empty before registration opens. */
+  pace: string;
+  paceHi: string;
+  target: ReportLine[];
   registration: ReportLine[];
   voting: ReportLine[];
   countries: ReportLine[];
@@ -545,6 +568,7 @@ export async function getReport(): Promise<Report> {
   await ensureSchema();
 
   const settings = await getSettings();
+  const hi = strings.admin.hi;
   const expected = config.expectedTurnout;
 
   const [row] = await sql<
@@ -577,86 +601,137 @@ export async function getReport(): Promise<Report> {
     WHERE NOT EXISTS (SELECT 1 FROM voters v WHERE v.phone = a.phone)
   `;
 
-  const stage = settings.registrationOpen
-    ? "Registration is open"
+  /** One figure, written once in each language. */
+  const line = (
+    label: string,
+    labelHi: string,
+    count: number,
+    against: { whole: number; outOf: string; outOfHi: string } | null,
+  ): ReportLine => ({
+    label,
+    labelHi,
+    count,
+    percent: against ? share(count, against.whole) : null,
+    outOf: against?.outOf ?? "",
+    outOfHi: against?.outOfHi ?? "",
+  });
+
+  const onRoster = counts.approved;
+  const everybody = onRoster + counts.pending;
+  const ofExpected = {
+    whole: expected, outOf: "expected", outOfHi: hi.outOfBases.expected,
+  };
+  const ofAllowed = {
+    whole: counts.allowed, outOf: "allowed numbers", outOfHi: hi.outOfBases.allowed,
+  };
+  const ofRoster = {
+    whole: onRoster, outOf: "the roster", outOfHi: hi.outOfBases.roster,
+  };
+  const ofEverybody = {
+    whole: everybody, outOf: "everybody registered", outOfHi: hi.outOfBases.everybody,
+  };
+
+  const [stage, stageHi] = settings.registrationOpen
+    ? ["Registration is open", hi.stages.registering]
     : settings.votingEnded
-      ? "Voting is closed"
+      ? ["Voting is closed", hi.stages.closed]
       : settings.votingOpen
-        ? "Voting is open"
+        ? ["Voting is open", hi.stages.voting]
         : settings.rosterLocked
-          ? "Voter list confirmed, waiting for voting to open"
-          : "Not started";
+          ? ["Voter list confirmed, waiting for voting to open", hi.stages.confirmed]
+          : ["Not started", hi.stages.idle];
+
+  // --- how far along we ought to be by now -------------------------------
+  //
+  // Registration has a start and a hard end: the hour voting opens. Spread
+  // the expected turnout evenly across that window and the target for this
+  // minute falls out, which is the difference between a number that means
+  // something and a number that just goes up.
+  const [opened] = await sql<{ at: Date }[]>`
+    SELECT created_at AS at FROM audit_log
+    WHERE action = 'open_registration' ORDER BY created_at DESC LIMIT 1
+  `;
+  const [firstIn] = await sql<{ at: Date | null }[]>`
+    SELECT MIN(registered_at) AS at FROM voters
+  `;
+  const startedAt = opened?.at ?? firstIn?.at ?? null;
+  const deadline = settings.opensAt ?? config.electionOpensAt;
+
+  const now = Date.now();
+  const target: ReportLine[] = [];
+  let pace = "";
+  let paceHi = "";
+
+  if (startedAt) {
+    const span = deadline.getTime() - startedAt.getTime();
+    const gone = now - startedAt.getTime();
+    const throughWindow = span > 0 ? Math.min(1, Math.max(0, gone / span)) : 1;
+    const shouldBe = Math.round(expected * throughWindow);
+    const behind = shouldBe - onRoster;
+    const left = Math.max(0, deadline.getTime() - now);
+    const by = readableMoment(deadline);
+
+    target.push(
+      line(strings.admin.reportTargetBy(by), hi.targetBy(by), expected, null),
+      line(strings.admin.reportShouldBe, hi.shouldBe, shouldBe, ofExpected),
+      line(strings.admin.reportWhereWeAre, hi.whereWeAre, onRoster, ofExpected),
+      behind > 0
+        ? line(strings.admin.reportBehind, hi.behind, behind, ofExpected)
+        : line(strings.admin.reportAhead, hi.ahead, -behind, ofExpected),
+    );
+
+    const gap = describeGap(left);
+    const gapHi = describeGapHi(left);
+    if (left === 0) {
+      pace = strings.admin.reportPaceOver(onRoster, expected);
+      paceHi = hi.paceOver(onRoster, expected);
+    } else if (behind > 0) {
+      pace = strings.admin.reportPaceBehind(behind, gap);
+      paceHi = hi.paceBehind(behind, gapHi);
+    } else if (behind < 0) {
+      pace = strings.admin.reportPaceAhead(-behind, gap);
+      paceHi = hi.paceAhead(-behind, gapHi);
+    } else {
+      pace = strings.admin.reportPaceLevel(gap);
+      paceHi = hi.paceLevel(gapHi);
+    }
+  }
 
   const countries = await sql<{ country: string | null; n: number }[]>`
     SELECT country, COUNT(*)::int AS n FROM voters
     GROUP BY country ORDER BY COUNT(*) DESC, country NULLS LAST
   `;
 
-  const onRoster = counts.approved;
-
   return {
     takenAt: new Date().toISOString(),
     stage,
+    stageHi,
     expected,
+    pace,
+    paceHi,
+    target,
     registration: [
-      { label: "Expected to take part", count: expected, percent: null, outOf: "" },
-      {
-        label: "Numbers allowed to register",
-        count: counts.allowed,
-        percent: share(counts.allowed, expected),
-        outOf: "expected",
-      },
-      {
-        label: "Registered and on the roster",
-        count: onRoster,
-        percent: share(onRoster, expected),
-        outOf: "expected",
-      },
-      {
-        label: "Waiting for approval",
-        count: counts.pending,
-        percent: share(counts.pending, expected),
-        outOf: "expected",
-      },
-      {
-        label: "On your list, not registered yet",
-        count: stillOut?.n ?? 0,
-        percent: share(stillOut?.n ?? 0, counts.allowed),
-        outOf: "allowed numbers",
-      },
-      {
-        label: "Registered from a number not on your list",
-        count: counts.off_list,
-        percent: share(counts.off_list, onRoster + counts.pending),
-        outOf: "everybody registered",
-      },
+      line("Expected to take part", hi.lines.expectedToTakePart, expected, null),
+      line("Numbers allowed to register", hi.lines.allowed, counts.allowed, ofExpected),
+      line("Registered and on the roster", hi.lines.onRoster, onRoster, ofExpected),
+      line("Waiting for approval", hi.lines.waiting, counts.pending, ofExpected),
+      line("On your list, not registered yet", hi.lines.stillOut, stillOut?.n ?? 0, ofAllowed),
+      line(
+        "Registered from a number not on your list",
+        hi.lines.offList,
+        counts.off_list,
+        ofEverybody,
+      ),
     ],
     voting: [
-      { label: "On the roster", count: onRoster, percent: null, outOf: "" },
-      {
-        label: "Voted",
-        count: counts.voted,
-        percent: share(counts.voted, onRoster),
-        outOf: "the roster",
-      },
-      {
-        label: "Not voted yet",
-        count: Math.max(0, onRoster - counts.voted),
-        percent: share(Math.max(0, onRoster - counts.voted), onRoster),
-        outOf: "the roster",
-      },
-      {
-        label: "Ballots in the ballot box",
-        count: counts.ballots,
-        percent: share(counts.ballots, onRoster),
-        outOf: "the roster",
-      },
+      line("On the roster", hi.lines.rosterTotal, onRoster, null),
+      line("Voted", hi.lines.voted, counts.voted, ofRoster),
+      line("Not voted yet", hi.lines.notVoted, Math.max(0, onRoster - counts.voted), ofRoster),
+      line("Ballots in the ballot box", hi.lines.ballots, counts.ballots, ofRoster),
     ],
-    countries: countries.map((c) => ({
-      label: c.country ?? "Not given",
-      count: c.n,
-      percent: share(c.n, onRoster + counts.pending),
-      outOf: "everybody registered",
-    })),
+    // Country names stay as they are written on the form in both files.
+    countries: countries.map((c) =>
+      line(c.country ?? "Not given", c.country ?? hi.lines.noCountry, c.n, ofEverybody),
+    ),
   };
 }

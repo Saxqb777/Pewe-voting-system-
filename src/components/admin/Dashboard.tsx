@@ -166,6 +166,13 @@ function ReportPanel({ data }: { data: DashboardData }) {
       </p>
       <p className="mt-1 text-sm text-ink-soft">{a.reportExpected(r.expected)}</p>
 
+      {r.pace ? (
+        <p className="mt-3 rounded-xl bg-paper px-4 py-3 text-base font-semibold text-ink">
+          {r.pace}
+        </p>
+      ) : null}
+
+      <ReportBlock title={a.reportTarget} rows={r.target} />
       <ReportBlock title={a.reportRegistration} rows={r.registration} />
       <ReportBlock title={a.reportVoting} rows={r.voting} />
       {r.countries.length > 0 ? (
@@ -178,6 +185,12 @@ function ReportPanel({ data }: { data: DashboardData }) {
           className="inline-flex min-h-12 items-center rounded-xl bg-brand px-4 py-2 text-base font-semibold text-white"
         >
           {a.reportDownload}
+        </a>
+        <a
+          href="/api/admin/report/pdf?lang=hi"
+          className="inline-flex min-h-12 items-center rounded-xl bg-brand px-4 py-2 text-base font-semibold text-white"
+        >
+          {a.reportDownloadHi}
         </a>
         <a
           href="/api/admin/report"

@@ -21,6 +21,23 @@ export function describeGap(milliseconds: number): string {
 }
 
 /**
+ * The same gap for a Hinglish reader. Written the way it is said out loud,
+ * so "2 days 9 hours" becomes "2 din 9 ghante".
+ */
+export function describeGapHi(milliseconds: number): string {
+  const total = Math.max(0, Math.floor(milliseconds / 1000));
+  const days = Math.floor(total / 86400);
+  const hours = Math.floor((total % 86400) / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+
+  if (days > 0) return `${days} din ${hours} ghante`;
+  if (hours > 0) return `${hours} ghante ${minutes} minute`;
+  if (minutes > 0) return `${minutes} minute ${seconds} second`;
+  return `${seconds} second`;
+}
+
+/**
  * A moment written out in India time, because that is the hour the society
  * announced and the one every voter has been told.
  *

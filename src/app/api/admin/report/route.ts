@@ -42,8 +42,9 @@ export async function GET() {
     ["Report taken", cell(`${when} India time`)].join(","),
     ["Stage", cell(report.stage)].join(","),
     ["Expected to take part", report.expected].join(","),
+    ["Pace", cell(report.pace)].join(","),
     "",
-    ["Section", "Figure", "Count", "Share", "Out of"].join(","),
+    ["Section", "Figure", "Figure (Hinglish)", "Count", "Share", "Out of"].join(","),
   ];
 
   const block = (name: string, rows: typeof report.registration) => {
@@ -52,6 +53,7 @@ export async function GET() {
         [
           cell(name),
           cell(row.label),
+          cell(row.labelHi),
           row.count,
           row.percent === null ? "" : `${row.percent}%`,
           cell(row.outOf),
@@ -60,6 +62,7 @@ export async function GET() {
     }
   };
 
+  block("Against the target", report.target);
   block("Registration", report.registration);
   block("Voting", report.voting);
   block("Where they are", report.countries);

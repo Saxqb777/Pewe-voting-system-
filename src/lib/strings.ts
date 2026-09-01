@@ -447,12 +447,83 @@ export const strings = {
     reportStage: "Stage",
     reportExpected: (n: number) =>
       `Shares are worked out against the ${n} people the society expects to take part.`,
+    reportTarget: "Against the target",
+    reportTargetBy: (when: string) => `Target by ${when}`,
+    reportShouldBe: "Where we should be by now",
+    reportWhereWeAre: "Where we are",
+    reportBehind: "Behind by",
+    reportAhead: "Ahead by",
+    reportPaceBehind: (n: number, left: string) =>
+      `${n} short of where we should be by now, with ${left} left to go.`,
+    reportPaceAhead: (n: number, left: string) =>
+      `${n} ahead of where we should be by now, with ${left} left to go.`,
+    reportPaceLevel: (left: string) =>
+      `Exactly where we should be by now, with ${left} left to go.`,
+    reportPaceOver: (have: number, expected: number) =>
+      `The window has closed with ${have} of the ${expected} expected.`,
     reportRegistration: "Registration",
     reportVoting: "Voting",
     reportCountries: "Where they are",
     reportOutOf: (what: string) => `of ${what}`,
-    reportDownload: "Download this report as PDF",
+    reportDownload: "Download in English",
+    reportDownloadHi: "Hinglish mein download kijiye",
     reportDownloadCsv: "or as a spreadsheet",
+
+    // The same report in the language the village actually speaks, so it can
+    // be read out in a meeting without anybody translating on the spot.
+    hi: {
+      heading: "Report",
+      taken: (when: string) => `${when} tak ki halat`,
+      stage: "Stage",
+      expected: (n: number) =>
+        `Sabhi percentage un ${n} logon ke muqable nikale gaye hain jinke aane ki ummeed hai.`,
+      target: "Target ke muqable",
+      targetBy: (when: string) => `${when} tak ka target`,
+      shouldBe: "Ab tak kitne hone chahiye the",
+      whereWeAre: "Abhi kitne hain",
+      behind: "Kitne kam hain",
+      ahead: "Kitne zyada hain",
+      paceBehind: (n: number, left: string) =>
+        `Ab tak jitne hone chahiye the us se ${n} kam hain, aur ${left} baaki hai.`,
+      paceAhead: (n: number, left: string) =>
+        `Ab tak jitne hone chahiye the us se ${n} zyada hain, aur ${left} baaki hai.`,
+      paceLevel: (left: string) =>
+        `Theek utne hi hain jitne ab tak hone chahiye the, aur ${left} baaki hai.`,
+      paceOver: (have: number, expected: number) =>
+        `Waqt khatam ho chuka hai. ${expected} mein se ${have} log aaye.`,
+      registration: "Registration",
+      voting: "Voting",
+      countries: "Log kahan hain",
+      outOf: (what: string) => `${what} mein se`,
+      privacy:
+        "Is report mein sirf ginti hai. Koi naam, koi number, koi code nahi, aur kisi ke vote ke baare mein kuch bhi nahi.",
+      stages: {
+        registering: "Registration khula hai",
+        confirmed: "Voter list confirm ho chuki hai, voting shuru hone ka intezaar",
+        voting: "Voting khuli hai",
+        closed: "Voting band ho chuki hai",
+        idle: "Abhi shuru nahi hua",
+      },
+      lines: {
+        expectedToTakePart: "Kitne logon ke aane ki ummeed hai",
+        allowed: "Kitne number register kar sakte hain",
+        onRoster: "Register ho chuke aur list mein hain",
+        waiting: "Approval ka intezaar",
+        stillOut: "Aapki list mein hain, abhi register nahi kiya",
+        offList: "Aise number se register kiya jo aapki list mein nahi",
+        rosterTotal: "List mein kitne hain",
+        voted: "Vote de chuke",
+        notVoted: "Abhi vote nahi diya",
+        ballots: "Ballot box mein kitne vote hain",
+        noCountry: "Nahi bataya",
+      },
+      outOfBases: {
+        expected: "ummeed",
+        allowed: "allowed numbers",
+        roster: "list",
+        everybody: "sab registered log",
+      },
+    },
     reportPrivacy:
       "This report holds counts only. No name, no number, no code, and nothing at all about how anybody voted.",
 
