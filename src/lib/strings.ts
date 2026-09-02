@@ -383,6 +383,13 @@ export const strings = {
     regRegisteredHeading: (n: number) => `On the roster (${n})`,
     regRegisteredHelp:
       "Their code is shown here so you can read it back to anyone who loses theirs.",
+    regShowCode: "Show code again",
+    regShowingCode: "Waiting for them to open the link",
+    regRemove: "Remove",
+    regRemoveConfirm: (name: string) =>
+      `Remove ${name} from the register? Their code stops working and they will have to register again from the start.`,
+    regRowHelp:
+      "Show code again puts it back on that person's own phone the next time they open the link. Remove takes them off the register so they can register afresh.",
     regMissingHeading: (n: number) => `Not registered yet (${n})`,
     regMissingHelp: "Chase these numbers before you confirm.",
     regNobodyMissing: "Everybody on the list has registered.",

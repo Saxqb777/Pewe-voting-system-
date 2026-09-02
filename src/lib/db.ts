@@ -224,6 +224,11 @@ ALTER TABLE settings ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ;
 -- name and number in. Confirming locks the roster and closes it for good.
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS registration_open BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS roster_locked BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Set by the admin when somebody says they lost their code before writing it
+-- down. It puts the code back on that person's own screen, and clears itself
+-- the moment they say they have it.
+ALTER TABLE voters ADD COLUMN IF NOT EXISTS show_code BOOLEAN NOT NULL DEFAULT FALSE;
 -- Anything already running before there was a Start button counts as started.
 UPDATE settings SET started_at = NOW()
   WHERE started_at IS NULL AND voting_open AND id = 1;
@@ -312,6 +317,12 @@ async function createSchema(): Promise<void> {
         WHERE table_schema = 'public'
           AND table_name = 'settings'
           AND column_name = 'roster_locked'
+      )
+      AND EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'voters'
+          AND column_name = 'show_code'
       ) AS ready
   `;
   if (ready?.ready) return;

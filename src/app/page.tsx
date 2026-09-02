@@ -48,14 +48,18 @@ export default async function EntryPage({
     } | null = null;
 
     if (mark && !registerAnother) {
-      const [row] = await sql<{ name: string; status: string; voter_id: string }[]>`
-        SELECT name, status, voter_id FROM voters WHERE phone = ${mark.phone}
+      const [row] = await sql<
+        { name: string; status: string; voter_id: string; show_code: boolean }[]
+      >`
+        SELECT name, status, voter_id, show_code FROM voters WHERE phone = ${mark.phone}
       `;
       if (row) {
-        // Approved by the admin after being held back, which means no code was
-        // ever shown on this screen. It is shown now, and only now: the phone
-        // stops carrying that mark the moment he says he has written it down.
-        const approvedSince = row.status === "approved" && mark.pending;
+        // Two ways a man ends up being shown his code here. He was approved
+        // after being held back, so he never saw one. Or he lost the one he
+        // had and the admin put it back on his screen. Either way it goes
+        // again the moment he says he has written it down.
+        const approvedSince =
+          row.status === "approved" && (mark.pending === true || row.show_code === true);
         already = {
           name: row.name,
           state:

@@ -208,6 +208,9 @@ export async function confirmCodeSeen(): Promise<void> {
   const mark = await readRegistrationMark();
   if (!mark) return;
   await writeRegistrationMark({ phone: mark.phone });
+  // Also puts down whatever the admin lifted, so a second loss needs a second
+  // press from him rather than leaving the code on that screen for good.
+  await sql`UPDATE voters SET show_code = FALSE WHERE phone = ${mark.phone}`;
   revalidatePath("/");
 }
 
@@ -335,6 +338,60 @@ export async function openRegistration(phrase: string): Promise<AdminResult> {
   revalidatePath("/admin");
   revalidatePath("/");
   return { ok: true, message: "Registration is open. People can now put their own names in." };
+}
+
+/**
+ * Puts a man's code back on his own screen.
+ *
+ * He registered, saw it once, and said he had it before he had written it
+ * down. Reading it out over WhatsApp would put it in a chat log; this shows
+ * it to him where he first saw it, on his own phone, and takes it away again
+ * as soon as he says he has it.
+ *
+ * Only works while he still has the phone he registered on. If he has
+ * changed phone or cleared his browser there is nothing on that phone to
+ * recognise him by, and the admin reads it out as before.
+ */
+export async function showCodeAgain(voterId: string): Promise<AdminResult> {
+  if (!(await readAdminSession())) return NOT_SIGNED_IN;
+  const rows = await sql<{ name: string }[]>`
+    UPDATE voters SET show_code = TRUE
+    WHERE voter_id = ${voterId} AND status = 'approved'
+    RETURNING name
+  `;
+  if (rows.length === 0) return { ok: false, message: "That person was not found." };
+
+  await audit("show_code_again", `${rows[0].name} was shown their code again.`);
+  revalidatePath("/admin");
+  revalidatePath("/");
+  return {
+    ok: true,
+    message: `${rows[0].name} will see their code the next time they open the link.`,
+  };
+}
+
+/**
+ * Takes somebody off the register entirely, so they can start again.
+ *
+ * For the case a code is beyond recovering, or a name was typed wrongly and
+ * the man would rather do it over. His number goes back to being one that has
+ * never registered, so the form accepts him again and he is given a fresh
+ * code.
+ */
+export async function removeRegistration(voterId: string): Promise<AdminResult> {
+  if (!(await readAdminSession())) return NOT_SIGNED_IN;
+  const blocked = await noBallotsYet();
+  if (blocked) return blocked;
+
+  const rows = await sql<{ name: string }[]>`
+    DELETE FROM voters WHERE voter_id = ${voterId} RETURNING name
+  `;
+  if (rows.length === 0) return { ok: false, message: "That person was not found." };
+
+  await audit("remove_registration", `${rows[0].name} was removed and may register again.`);
+  revalidatePath("/admin");
+  revalidatePath("/");
+  return { ok: true, message: `${rows[0].name} was removed and can register again.` };
 }
 
 /** Lets somebody who was not on the list onto the roster. */

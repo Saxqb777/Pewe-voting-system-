@@ -14,6 +14,8 @@ import {
   openRegistration,
   approveRegistration,
   rejectRegistration,
+  showCodeAgain,
+  removeRegistration,
   confirmRoster,
 } from "@/actions/registration";
 
@@ -204,10 +206,52 @@ export function ElectionFlow({
                 </div>
               ) : null}
 
-              <People title={a.regRegisteredHeading(registered)} help={a.regRegisteredHelp}
-                rows={reg.approved.map((p) => ({
-                  key: p.voterId, name: p.name, phone: p.phone, code: p.voterId,
-                }))} />
+              {/* Each person carries the two things that go wrong: a code lost
+                  before it was written down, and a registration that has to be
+                  started over. */}
+              <div>
+                <h4 className="text-sm font-bold text-ink">
+                  {a.regRegisteredHeading(registered)}
+                </h4>
+                <p className="mt-1 text-sm text-ink-soft">{a.regRegisteredHelp}</p>
+                <p className="mt-1 text-sm text-ink-soft">{a.regRowHelp}</p>
+                <ul className="mt-2 max-h-96 space-y-1 overflow-y-auto">
+                  {reg.approved.map((p) => (
+                    <li key={p.voterId} data-registration="approved"
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-paper px-3 py-2">
+                      <span className="min-w-0">
+                        <span className="block text-base text-ink">{p.name}</span>
+                        <span className="block font-mono text-sm text-ink-soft">
+                          {displayPhone(p.phone)}
+                        </span>
+                      </span>
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-sm font-bold tracking-widest text-brand">
+                          {p.voterId}
+                        </span>
+                        {p.showingCode ? (
+                          <span className="text-sm font-medium text-warn">
+                            {a.regShowingCode}
+                          </span>
+                        ) : (
+                          <Button disabled={pending}
+                            onClick={() => run(() => showCodeAgain(p.voterId))}>
+                            {a.regShowCode}
+                          </Button>
+                        )}
+                        <Button disabled={pending}
+                          onClick={() => {
+                            if (window.confirm(a.regRemoveConfirm(p.name))) {
+                              run(() => removeRegistration(p.voterId));
+                            }
+                          }}>
+                          {a.regRemove}
+                        </Button>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
               <div className="mt-4">
                 {reg.missing.length === 0 ? (

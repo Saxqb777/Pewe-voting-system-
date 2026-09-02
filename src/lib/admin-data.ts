@@ -338,6 +338,8 @@ export type Registration = {
   registeredAt: string | null;
   /** The name the society already had for this number, if it had one. */
   knownName: string;
+  /** True while the admin has put this person's code back on their screen. */
+  showingCode: boolean;
 };
 
 export type RegistrationState = {
@@ -412,9 +414,10 @@ export async function getRegistrationState(): Promise<RegistrationState> {
         phone: string | null;
         status: string;
         registered_at: Date | null;
+        show_code: boolean;
       }[]
     >`
-      SELECT voter_id, name, phone, status, registered_at
+      SELECT voter_id, name, phone, status, registered_at, show_code
       FROM voters WHERE phone IS NOT NULL
       ORDER BY registered_at DESC NULLS LAST, LOWER(name)
     `,
@@ -430,6 +433,7 @@ export async function getRegistrationState(): Promise<RegistrationState> {
     phone: r.phone ?? "",
     registeredAt: r.registered_at ? r.registered_at.toISOString() : null,
     knownName: known.get(r.phone ?? "") ?? "",
+    showingCode: r.show_code === true,
   });
 
   const registered = new Set(people.map((p) => p.phone ?? ""));

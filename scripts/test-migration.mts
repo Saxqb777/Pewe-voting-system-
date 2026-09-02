@@ -29,6 +29,7 @@ const ADDED_COLUMNS: [string, string][] = [
   ["voters", "phone"],
   ["voters", "status"],
   ["voters", "registered_at"],
+  ["voters", "show_code"],
   ["settings", "registration_open"],
   ["settings", "roster_locked"],
 ];
