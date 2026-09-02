@@ -796,6 +796,26 @@ function RosterPanel({ data }: { data: DashboardData }) {
 
       {loaded ? (
         <div className="mt-3 space-y-4">
+          {/* One link, sent once. It saves the admin from being asked for the
+              same file every time somebody new registers. */}
+          <div className="rounded-xl border-2 border-brand bg-paper p-3">
+            <h3 className="text-base font-bold text-ink">
+              {strings.admin.statusLinkHeading}
+            </h3>
+            <p className="mt-1 text-sm text-ink-soft">{strings.admin.statusLinkHelp}</p>
+            <p className="mt-2 select-all break-all font-mono text-sm font-semibold text-brand">
+              {`${data.siteUrl}/status`}
+            </p>
+            <a
+              href="/status"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-flex min-h-12 items-center rounded-xl border-2 border-line bg-card px-4 py-2 text-base font-semibold text-ink"
+            >
+              {strings.admin.statusLinkOpen}
+            </a>
+          </div>
+
           <div>
             <a
               href="/api/admin/roster/names"

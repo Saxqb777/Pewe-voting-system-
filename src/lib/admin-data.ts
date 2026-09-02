@@ -394,6 +394,8 @@ export type Dashboard = {
   audit: { action: string; detail: string; at: string }[];
   countries: CountryCount[];
   report: Report;
+  /** Where this site actually lives, for the link the admin hands out. */
+  siteUrl: string;
 };
 
 /**
@@ -521,6 +523,7 @@ export async function getDashboard(): Promise<Dashboard> {
     },
     countries,
     report,
+    siteUrl: config.siteUrl,
     audit: auditRows.map((a) => ({
       action: a.action,
       detail: a.detail,
@@ -565,6 +568,78 @@ export async function getRegisteredList(): Promise<RegisteredRow[]> {
         })
       : "",
   }));
+}
+
+// --------------------------------------------------------------------------
+// What the whole village may see
+// --------------------------------------------------------------------------
+
+export type PublicStatus = {
+  takenAt: string;
+  expected: number;
+  registered: number;
+  stillToCome: number;
+  /** Null once registration has closed, or if it never opened. */
+  opensAt: string | null;
+  registrationOpen: boolean;
+  rosterLocked: boolean;
+  votingOpen: boolean;
+  votingEnded: boolean;
+  /** Name and the moment each one arrived. No numbers, and never a code. */
+  people: { name: string; joined: string }[];
+};
+
+/**
+ * The same figures the admin sees, minus everything that is his business
+ * alone.
+ *
+ * No voting codes, because this page needs no password. No phone numbers
+ * either: a link can be forwarded out of the group in a way a file sent into
+ * it is not, and a name and a date embarrass nobody.
+ */
+export async function getPublicStatus(): Promise<PublicStatus> {
+  await ensureSchema();
+  const settings = await getSettings();
+
+  const [counts] = await sql<{ registered: number; still: number }[]>`
+    SELECT
+      (SELECT COUNT(*)::int FROM voters WHERE status = 'approved') AS registered,
+      (SELECT COUNT(*)::int FROM allowed_numbers a
+        WHERE NOT EXISTS (SELECT 1 FROM voters v WHERE v.phone = a.phone)) AS still
+  `;
+
+  const rows = await sql<{ name: string; registered_at: Date | null }[]>`
+    SELECT name, registered_at FROM voters
+    WHERE status = 'approved'
+    ORDER BY registered_at NULLS LAST, name
+  `;
+
+  const opening = settings.opensAt ?? config.electionOpensAt;
+
+  return {
+    takenAt: new Date().toISOString(),
+    expected: config.expectedTurnout,
+    registered: counts?.registered ?? 0,
+    stillToCome: counts?.still ?? 0,
+    opensAt: opening.getTime() > Date.now() ? opening.toISOString() : null,
+    registrationOpen: settings.registrationOpen,
+    rosterLocked: settings.rosterLocked,
+    votingOpen: settings.votingOpen,
+    votingEnded: settings.votingEnded,
+    people: rows.map((r) => ({
+      name: r.name,
+      joined: r.registered_at
+        ? r.registered_at.toLocaleString("en-GB", {
+            timeZone: "Asia/Kolkata",
+            day: "numeric",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          })
+        : "",
+    })),
+  };
 }
 
 // --------------------------------------------------------------------------

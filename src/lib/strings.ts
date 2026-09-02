@@ -122,6 +122,43 @@ export const strings = {
       "Neeche wala button dabane tak yeh screen aapka code dikhati rahegi. Uske baad dobara nahi dikhega.",
   },
 
+  // -----------------------------------------------------------------------
+  // The page anybody may open. Pinned in the group so nobody has to ask.
+  // -----------------------------------------------------------------------
+  status: {
+    title: "Who has registered",
+    titleHi: "Kaun kaun register ho chuka hai",
+    lead: "This page updates on its own. Open it any time.",
+    leadHi: "Yeh page apne aap update hota hai. Kabhi bhi khol kar dekh sakte hain.",
+    registered: "Registered",
+    registeredHi: "Register ho chuke",
+    ofExpected: (n: number) => `of about ${n} expected`,
+    ofExpectedHi: (n: number) => `takreeban ${n} mein se`,
+    stillToCome: (n: number) => `${n} still to register`,
+    stillToComeHi: (n: number) => `${n} logon ne abhi register nahi kiya`,
+    everybodyIn: "Everybody on the society's list has registered.",
+    everybodyInHi: "Society ki list ke sabhi log register kar chuke hain.",
+    registrationOpen: "Registration is open",
+    registrationOpenHi: "Registration khula hai",
+    registrationClosed: "Registration has closed. The voter list is fixed.",
+    registrationClosedHi: "Registration band ho chuka hai. Voter list pakki ho chuki hai.",
+    votingNow: "Voting is open now.",
+    votingNowHi: "Voting abhi khuli hai.",
+    votingDone: "Voting has closed.",
+    votingDoneHi: "Voting band ho chuki hai.",
+    notYet: "Nobody has registered yet.",
+    notYetHi: "Abhi kisi ne register nahi kiya.",
+    listHeading: (n: number) => `The ${n} who have registered`,
+    listHeadingHi: "Jo log register ho chuke hain",
+    colName: "Name",
+    colJoined: "Registered",
+    joinIn: "Not on the list yet? Register here",
+    joinInHi: "Aapne abhi tak register nahi kiya? Yahan kijiye",
+    updated: (when: string) => `Last checked ${when}`,
+    privacy: "Names only. No phone numbers and no voting codes are on this page, and nothing about how anybody voted.",
+    privacyHi: "Sirf naam. Is page par koi phone number ya voting code nahi hai, aur kisi ke vote ke baare mein kuch bhi nahi.",
+  },
+
   entry: {
     title: "PSWS General Election for Pewe 2026",
     subtitle: "Enter your Voter ID to begin",
@@ -551,6 +588,10 @@ export const strings = {
       "No voting codes are on this page, and nothing about how anybody voted.",
     namesPrivacyHi:
       "Is page par koi voting code nahi hai, aur kisi ke vote ke baare mein kuch bhi nahi.",
+    statusLinkHeading: "The page the group can watch",
+    statusLinkHelp:
+      "Send this link once and let them pin it. It shows who has registered and updates on its own, so nobody has to ask you for a file again. Names only, no numbers and no codes.",
+    statusLinkOpen: "Open it",
     namesDownload: "Download the list of names to share",
     namesDownloadHelp:
       "Safe to send in the group. Names, numbers and when each person registered, with no codes on it.",
