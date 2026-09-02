@@ -7,6 +7,7 @@ import {
   VOTER_FAILED_ATTEMPT_FLAG_THRESHOLD,
 } from "./config";
 import { describeGap, describeGapHi } from "./countdown";
+import { displayPhone } from "./phone";
 import { strings } from "./strings";
 
 /** A moment in the hour the village agreed on, which is India time. */
@@ -522,6 +523,44 @@ export async function getDashboard(): Promise<Dashboard> {
       at: a.at.toISOString(),
     })),
   };
+}
+
+// --------------------------------------------------------------------------
+// The list that can be shared
+// --------------------------------------------------------------------------
+
+export type RegisteredRow = { name: string; phone: string; joined: string };
+
+/**
+ * Who has registered, in the order they arrived.
+ *
+ * Names, numbers and the moment each one came in. Deliberately no voting
+ * code: this list is made to be sent to the whole group, and a code on it
+ * would let any reader vote as its owner.
+ */
+export async function getRegisteredList(): Promise<RegisteredRow[]> {
+  await ensureSchema();
+  const rows = await sql<
+    { name: string; phone: string | null; registered_at: Date | null }[]
+  >`
+    SELECT name, phone, registered_at FROM voters
+    WHERE status = 'approved'
+    ORDER BY registered_at NULLS LAST, name
+  `;
+  return rows.map((r) => ({
+    name: r.name,
+    phone: r.phone ? displayPhone(r.phone) : "",
+    joined: r.registered_at
+      ? r.registered_at.toLocaleString("en-GB", {
+          timeZone: "Asia/Kolkata",
+          day: "numeric",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        })
+      : "",
+  }));
 }
 
 // --------------------------------------------------------------------------

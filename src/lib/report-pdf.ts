@@ -130,6 +130,133 @@ function block(ctx: Ctx, title: string, rows: ReportLine[], lang: ReportLang): v
   }
 }
 
+/** The society's own heading, drawn on anything it sends out. */
+async function letterhead(ctx: Ctx): Promise<void> {
+  let textLeft = MARGIN;
+  try {
+    const bytes = await readFile(path.join(process.cwd(), "public", "psws-logo.jpg"));
+    const seal = await ctx.doc.embedJpg(bytes);
+    const size = 52;
+    ctx.page.drawImage(seal, {
+      x: MARGIN, y: ctx.y - size + 12, width: size, height: size,
+    });
+    textLeft = MARGIN + size + 14;
+  } catch {
+    // A missing seal is not worth failing a document over.
+  }
+
+  text(ctx, strings.common.orgName, { size: 14, font: ctx.bold, x: textLeft });
+  ctx.y -= 15;
+  text(ctx, strings.common.registration, { size: 9, color: SOFT, x: textLeft });
+  ctx.y -= 14;
+  text(ctx, strings.common.appName, { size: 11, font: ctx.bold, color: BRAND, x: textLeft });
+
+  ctx.y -= 26;
+  ctx.page.drawLine({
+    start: { x: MARGIN, y: ctx.y },
+    end: { x: A4[0] - MARGIN, y: ctx.y },
+    thickness: 2,
+    color: BRAND,
+  });
+}
+
+/**
+ * Who has registered, as a page that can go straight into the group.
+ *
+ * Names and nothing else. No codes, no phone numbers, no seat numbers, so
+ * there is nothing on it that could let one man vote as another and nothing
+ * that anybody would mind seeing shared.
+ */
+export async function namesPdf(
+  rows: { name: string; phone: string; joined: string }[],
+  when: string,
+): Promise<Uint8Array> {
+  const a = strings.admin;
+  const doc = await PDFDocument.create();
+  const regular = await doc.embedFont(StandardFonts.Helvetica);
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const ctx: Ctx = { doc, page: doc.addPage(A4), y: A4[1] - MARGIN, regular, bold };
+
+  doc.setTitle(a.namesHeading);
+  doc.setAuthor(strings.common.orgName);
+
+  await letterhead(ctx);
+
+  ctx.y -= 26;
+  text(ctx, a.namesHeading, { size: 18, font: bold });
+  ctx.y -= 16;
+  text(ctx, a.namesHeadingHi, { size: 11, color: SOFT });
+  ctx.y -= 16;
+  text(ctx, a.namesCount(rows.length), { size: 11, font: bold, color: BRAND });
+  ctx.y -= 14;
+  text(ctx, a.namesTaken(when), { size: 9, color: SOFT });
+
+  // Column edges, measured once. Name gets the room because that is the
+  // thing a man scans for.
+  const NUM = MARGIN;
+  const NAME = MARGIN + 26;
+  const PHONE = MARGIN + 250;
+  const JOINED = A4[0] - MARGIN;
+  const ROW = 15;
+
+  const heading = () => {
+    ctx.y -= 22;
+    text(ctx, a.namesColName, { size: 8.5, font: bold, color: SOFT, x: NAME });
+    text(ctx, a.namesColPhone, { size: 8.5, font: bold, color: SOFT, x: PHONE });
+    rightText(ctx, a.namesColJoined, JOINED, { size: 8.5, font: bold, color: SOFT });
+    ctx.y -= 6;
+    ctx.page.drawLine({
+      start: { x: MARGIN, y: ctx.y },
+      end: { x: A4[0] - MARGIN, y: ctx.y },
+      thickness: 1,
+      color: RULE,
+    });
+    ctx.y -= 14;
+  };
+
+  heading();
+
+  rows.forEach((row, i) => {
+    // Room for the row, and for the note pinned at the foot of the page.
+    if (ctx.y < MARGIN + 54) {
+      newPage(ctx);
+      heading();
+    }
+    ctx.page.drawText(String(i + 1), {
+      x: NUM, y: ctx.y, size: 9, font: regular, color: SOFT,
+    });
+    ctx.page.drawText(row.name.slice(0, 40), {
+      x: NAME, y: ctx.y, size: 10, font: regular, color: INK,
+    });
+    ctx.page.drawText(row.phone, {
+      x: PHONE, y: ctx.y, size: 10, font: regular, color: INK,
+    });
+    ctx.page.drawText(row.joined, {
+      x: JOINED - regular.widthOfTextAtSize(row.joined, 9),
+      y: ctx.y,
+      size: 9,
+      font: regular,
+      color: SOFT,
+    });
+    ctx.y -= ROW;
+  });
+
+  // --- what it is not -----------------------------------------------------
+  ctx.y = MARGIN + 30;
+  ctx.page.drawLine({
+    start: { x: MARGIN, y: ctx.y },
+    end: { x: A4[0] - MARGIN, y: ctx.y },
+    thickness: 1,
+    color: RULE,
+  });
+  ctx.y -= 14;
+  text(ctx, a.namesPrivacy, { size: 9, color: SOFT });
+  ctx.y -= 12;
+  text(ctx, a.namesPrivacyHi, { size: 9, color: SOFT });
+
+  return doc.save();
+}
+
 export async function reportPdf(
   report: Report,
   when: string,
@@ -160,33 +287,7 @@ export async function reportPdf(
   doc.setAuthor(strings.common.orgName);
   doc.setCreationDate(new Date(report.takenAt));
 
-  // --- letterhead ---------------------------------------------------------
-  let textLeft = MARGIN;
-  try {
-    const bytes = await readFile(path.join(process.cwd(), "public", "psws-logo.jpg"));
-    const seal = await doc.embedJpg(bytes);
-    const size = 52;
-    ctx.page.drawImage(seal, {
-      x: MARGIN, y: ctx.y - size + 12, width: size, height: size,
-    });
-    textLeft = MARGIN + size + 14;
-  } catch {
-    // A missing seal is not worth failing a report over.
-  }
-
-  text(ctx, strings.common.orgName, { size: 14, font: bold, x: textLeft });
-  ctx.y -= 15;
-  text(ctx, strings.common.registration, { size: 9, color: SOFT, x: textLeft });
-  ctx.y -= 14;
-  text(ctx, strings.common.appName, { size: 11, font: bold, color: BRAND, x: textLeft });
-
-  ctx.y -= 26;
-  ctx.page.drawLine({
-    start: { x: MARGIN, y: ctx.y },
-    end: { x: A4[0] - MARGIN, y: ctx.y },
-    thickness: 2,
-    color: BRAND,
-  });
+  await letterhead(ctx);
 
   // --- what this is -------------------------------------------------------
   ctx.y -= 26;

@@ -532,6 +532,22 @@ export const strings = {
     reportPrivacy:
       "This report holds counts only. No name, no number, no code, and nothing at all about how anybody voted.",
 
+    // The list of who has registered, made to be sent to the group.
+    namesHeading: "Registered voters",
+    namesHeadingHi: "Jo log register ho chuke hain",
+    namesCount: (n: number) => `${n} registered so far`,
+    namesTaken: (when: string) => `As it stands on ${when}`,
+    namesColName: "NAME",
+    namesColPhone: "PHONE",
+    namesColJoined: "REGISTERED",
+    namesPrivacy:
+      "No voting codes are on this page, and nothing about how anybody voted.",
+    namesPrivacyHi:
+      "Is page par koi voting code nahi hai, aur kisi ke vote ke baare mein kuch bhi nahi.",
+    namesDownload: "Download the list of names to share",
+    namesDownloadHelp:
+      "Safe to send in the group. Names, numbers and when each person registered, with no codes on it.",
+
     auditHeading: "Activity log",
     auditEmpty: "Nothing logged yet.",
   },
