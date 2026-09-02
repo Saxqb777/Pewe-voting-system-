@@ -64,17 +64,19 @@ export default async function StatusPage() {
         </p>
       </header>
 
-      {/* The one figure everybody opens this page for. */}
+      {/* The one figure everybody opens this page for, said as a share. A
+          count alone means nothing without the number it is out of. */}
       <section className="mt-6 rounded-2xl border-2 border-brand bg-card p-5 text-center">
-        <p className="text-sm font-semibold uppercase tracking-wide text-ink-soft">
-          {s.registered} / {s.registeredHi}
+        <p className="text-6xl font-bold tabular-nums text-brand">{pct}%</p>
+        <p className="mt-1 text-base font-semibold text-ink">
+          {s.registeredNow}
+          <span className="block font-normal text-ink-soft">{s.registeredNowHi}</span>
         </p>
-        <p className="mt-1 text-6xl font-bold tabular-nums text-brand">
-          {status.registered}
+        <p className="mt-2 text-lg font-semibold tabular-nums text-ink">
+          {s.ofExpected(status.registered, status.expected)}
         </p>
-        <p className="mt-1 text-base text-ink-soft">
-          {s.ofExpected(status.expected)}
-          <span className="block">{s.ofExpectedHi(status.expected)}</span>
+        <p className="text-base text-ink-soft">
+          {s.ofExpectedHi(status.registered, status.expected)}
         </p>
 
         <div aria-hidden className="mt-4 h-3 w-full overflow-hidden rounded-full bg-paper">
@@ -123,9 +125,16 @@ export default async function StatusPage() {
                 key={`${person.name}-${i}`}
                 className="flex flex-wrap items-baseline justify-between gap-2 rounded-lg bg-card px-3 py-2"
               >
-                <span className="text-base text-ink">
-                  <span className="mr-2 text-sm text-ink-faint tabular-nums">{i + 1}</span>
-                  {person.name}
+                <span className="min-w-0">
+                  <span className="block text-base text-ink">
+                    <span className="mr-2 text-sm text-ink-faint tabular-nums">{i + 1}</span>
+                    {person.name}
+                  </span>
+                  {person.phone ? (
+                    <span className="ml-6 block font-mono text-sm text-ink-soft">
+                      {person.phone}
+                    </span>
+                  ) : null}
                 </span>
                 <span className="text-sm tabular-nums text-ink-soft">{person.joined}</span>
               </li>

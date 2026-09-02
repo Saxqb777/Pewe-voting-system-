@@ -585,17 +585,17 @@ export type PublicStatus = {
   rosterLocked: boolean;
   votingOpen: boolean;
   votingEnded: boolean;
-  /** Name and the moment each one arrived. No numbers, and never a code. */
-  people: { name: string; joined: string }[];
+  /** Name, number and the moment each one arrived. Never a code. */
+  people: { name: string; phone: string; joined: string }[];
 };
 
 /**
  * The same figures the admin sees, minus everything that is his business
  * alone.
  *
- * No voting codes, because this page needs no password. No phone numbers
- * either: a link can be forwarded out of the group in a way a file sent into
- * it is not, and a name and a date embarrass nobody.
+ * No voting codes, ever: this page needs no password, and a code on it would
+ * let any reader vote as its owner. The numbers are here at the society's
+ * own decision, so a man can find himself among names that repeat.
  */
 export async function getPublicStatus(): Promise<PublicStatus> {
   await ensureSchema();
@@ -608,8 +608,10 @@ export async function getPublicStatus(): Promise<PublicStatus> {
         WHERE NOT EXISTS (SELECT 1 FROM voters v WHERE v.phone = a.phone)) AS still
   `;
 
-  const rows = await sql<{ name: string; registered_at: Date | null }[]>`
-    SELECT name, registered_at FROM voters
+  const rows = await sql<
+    { name: string; phone: string | null; registered_at: Date | null }[]
+  >`
+    SELECT name, phone, registered_at FROM voters
     WHERE status = 'approved'
     ORDER BY registered_at NULLS LAST, name
   `;
@@ -628,6 +630,7 @@ export async function getPublicStatus(): Promise<PublicStatus> {
     votingEnded: settings.votingEnded,
     people: rows.map((r) => ({
       name: r.name,
+      phone: r.phone ? displayPhone(r.phone) : "",
       joined: r.registered_at
         ? r.registered_at.toLocaleString("en-GB", {
             timeZone: "Asia/Kolkata",
