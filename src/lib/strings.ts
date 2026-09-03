@@ -286,10 +286,14 @@ export const strings = {
     step2Todo: "Until you open it, nobody can put their name in.",
     step3: "People register themselves",
     step3Done: (n: number) => `${n} people registered`,
+    // Said with each number's own base against it. The two are counted
+    // differently on purpose, because a man may register from a number the
+    // society never had, and without saying so they read as a sum that is
+    // wrong.
     step3Waiting: (done: number, left: number) =>
       left > 0
-        ? `${done} registered, ${left} still to come.`
-        : `${done} registered. Everybody on the list has been in.`,
+        ? `${done} people registered. ${left} on the society's list still to come.`
+        : `${done} people registered. Everybody on the society's list has been in.`,
     step3Todo: "Each person puts their own name and number in and gets their code.",
     step4: "Confirm the voter list",
     step4Done: (n: number) => `Fixed at ${n} voters`,

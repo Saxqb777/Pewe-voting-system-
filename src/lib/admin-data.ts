@@ -447,7 +447,9 @@ export async function getRegistrationState(): Promise<RegistrationState> {
     showingCode: r.show_code === true,
   });
 
-  const registered = new Set(people.map((p) => p.phone ?? ""));
+  // The same split the chasing list is written from, so a number the admin
+  // reads on this page can never disagree with the file he sends out.
+  const split = await splitTheList();
 
   return {
     open: settings.registrationOpen,
@@ -456,9 +458,7 @@ export async function getRegistrationState(): Promise<RegistrationState> {
     allowedNamed: allowed.filter((a) => (a.known_name || societyName(a.phone)) !== "").length,
     approved: people.filter((p) => p.status === "approved").map(shape),
     pending: people.filter((p) => p.status === "pending").map(shape),
-    missing: allowed
-      .filter((a) => !registered.has(a.phone))
-      .map((a) => ({ phone: a.phone, knownName: a.known_name || societyName(a.phone) })),
+    missing: split.missing.map((m) => ({ phone: m.phone, knownName: m.name })),
   };
 }
 
