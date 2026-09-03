@@ -9,6 +9,7 @@ import {
 import { describeGap, describeGapHi } from "./countdown";
 import { displayPhone, normalisePhone } from "./phone";
 import { strings } from "./strings";
+import { societyName } from "./society-contacts";
 
 /** A moment in the hour the village agreed on, which is India time. */
 function readableMoment(when: Date): string {
@@ -434,7 +435,9 @@ export async function getRegistrationState(): Promise<RegistrationState> {
     `,
   ]);
 
-  const known = new Map(allowed.map((a) => [a.phone, a.known_name]));
+  const known = new Map(
+    allowed.map((a) => [a.phone, a.known_name || societyName(a.phone)]),
+  );
   const shape = (r: (typeof people)[number]): Registration => ({
     voterId: r.voter_id,
     name: r.name,
@@ -450,12 +453,12 @@ export async function getRegistrationState(): Promise<RegistrationState> {
     open: settings.registrationOpen,
     locked: settings.rosterLocked,
     allowedCount: allowed.length,
-    allowedNamed: allowed.filter((a) => a.known_name !== "").length,
+    allowedNamed: allowed.filter((a) => (a.known_name || societyName(a.phone)) !== "").length,
     approved: people.filter((p) => p.status === "approved").map(shape),
     pending: people.filter((p) => p.status === "pending").map(shape),
     missing: allowed
       .filter((a) => !registered.has(a.phone))
-      .map((a) => ({ phone: a.phone, knownName: a.known_name })),
+      .map((a) => ({ phone: a.phone, knownName: a.known_name || societyName(a.phone) })),
   };
 }
 
@@ -675,11 +678,15 @@ export async function getNotRegisteredList(): Promise<RegisteredRow[]> {
     WHERE NOT EXISTS (SELECT 1 FROM voters v WHERE v.phone = a.phone)
     ORDER BY known_name, phone
   `;
-  return rows.map((r) => ({
-    name: r.known_name || "",
-    phone: displayPhone(r.phone),
-    joined: "",
-  }));
+  // Sorted here rather than in the query, because a name standing in from
+  // the society's own list is not in the column the database ordered on.
+  return rows
+    .map((r) => ({
+      name: r.known_name || societyName(r.phone),
+      phone: displayPhone(r.phone),
+      joined: "",
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name) || a.phone.localeCompare(b.phone));
 }
 
 // --------------------------------------------------------------------------
