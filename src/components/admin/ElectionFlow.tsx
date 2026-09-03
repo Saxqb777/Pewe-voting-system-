@@ -17,6 +17,8 @@ import {
   showCodeAgain,
   removeRegistration,
   confirmRoster,
+  linkToRegistration,
+  notTheSameMan,
 } from "@/actions/registration";
 
 type State = "done" | "now" | "later";
@@ -257,6 +259,67 @@ export function ElectionFlow({
                   ))}
                 </ul>
               </div>
+
+              {/* Settled before the chasing list is read, because a man who
+                  is already in must not be rung and told he is not. */}
+              {reg.possible.length > 0 ? (
+                <div className="mt-4 rounded-xl border-2 border-warn bg-paper p-3">
+                  <h4 className="text-sm font-bold text-warn">
+                    {a.maybeHeading(reg.possible.length)}
+                  </h4>
+                  <p className="mt-1 text-sm text-ink-soft">{a.maybeHelp}</p>
+
+                  <ul className="mt-3 space-y-3">
+                    {reg.possible.map((m) => (
+                      <li key={m.rawPhone} className="rounded-lg bg-card p-3">
+                        <p className="text-base font-semibold text-ink">
+                          {a.maybeOne(m.listName)}
+                        </p>
+                        <Dial phone={m.phone} />
+
+                        {m.candidates.length > 1 ? (
+                          <p className="mt-2 text-sm font-medium text-warn">{a.maybePickOne}</p>
+                        ) : null}
+
+                        <ul className="mt-2 space-y-2">
+                          {m.candidates.map((c) => (
+                            <li
+                              key={c.voterId}
+                              className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-2"
+                            >
+                              <span className="min-w-0">
+                                <span className="block text-sm text-ink-soft">
+                                  {a.maybeCandidate}
+                                </span>
+                                <span className="block text-base text-ink">{c.name}</span>
+                                <Dial phone={c.phone} />
+                              </span>
+                              <Button
+                                tone="primary"
+                                disabled={pending}
+                                onClick={() =>
+                                  run(() => linkToRegistration(m.rawPhone, c.voterId))
+                                }
+                              >
+                                {a.maybeIsHim}
+                              </Button>
+                            </li>
+                          ))}
+                        </ul>
+
+                        <div className="mt-3">
+                          <Button
+                            disabled={pending}
+                            onClick={() => run(() => notTheSameMan(m.rawPhone))}
+                          >
+                            {a.maybeNotHim}
+                          </Button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
 
               <div className="mt-4">
                 {reg.missing.length === 0 ? (

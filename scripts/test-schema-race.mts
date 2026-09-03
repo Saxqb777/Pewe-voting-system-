@@ -31,7 +31,7 @@ const source = (await import("node:fs")).readFileSync(
 );
 const SCHEMA = source.match(/const SCHEMA_SQL = `([^`]*)`;/)![1];
 
-const TABLES_EXPECTED = 7;
+const TABLES_EXPECTED = 8;
 let failures = 0;
 for (let round = 1; round <= 5; round++) {
   await admin`DROP TABLE IF EXISTS ballots, voters, settings, id_attempts, session_locks, audit_log CASCADE`;
@@ -54,7 +54,7 @@ for (let round = 1; round <= 5; round++) {
     const [{ n }] = await admin`SELECT COUNT(*)::int AS n FROM settings`;
     const t = await admin`SELECT COUNT(*)::int AS n FROM information_schema.tables WHERE table_schema='public'`;
     // voters, ballots, settings, id_attempts, session_locks, audit_log,
-    // allowed_numbers.
+    // allowed_numbers, list_matches.
     const ok = n === 1 && t[0].n === TABLES_EXPECTED;
     if (!ok) failures++;
     console.log(`${ok?"PASS":"FAIL"}  round ${round}: 8 instances raced, ${t[0].n} tables, ${n} settings row`);

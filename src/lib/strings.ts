@@ -446,6 +446,16 @@ export const strings = {
       "Show code again puts it back on that person's own phone the next time they open the link. Remove takes them off the register so they can register afresh.",
     regMissingHeading: (n: number) => `Not registered yet (${n})`,
     regMissingHelp: "Chase these numbers before you confirm.",
+    maybeHeading: (n: number) =>
+      n === 1 ? "1 man may already be registered" : `${n} men may already be registered`,
+    maybeHelp:
+      "The society has these numbers, nobody registered on them, but somebody with that name registered on a different number. Only you can say if it is the same man.",
+    maybeIsHim: "Same man",
+    maybeNotHim: "Different men",
+    maybeOne: (listName: string) => `${listName} on your list`,
+    maybeCandidate: "registered as",
+    maybePickOne: "More than one man fits this name, so pick the right one.",
+    maybeNoneLeft: "Nothing to decide. Every number on the list is settled.",
     regNobodyMissing: "Everybody on the list has registered.",
 
     regConfirmHeading: "Fix the list and set the dates",

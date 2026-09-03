@@ -176,6 +176,19 @@ CREATE TABLE IF NOT EXISTS allowed_numbers (
   added_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Table: list_matches. One man, two records. The society's contact list has
+-- him under an old number and he registered on a new one, so nothing in the
+-- data joins the two. Only a person can say they are the same man, and this
+-- is where that decision is kept so it is made once rather than every time a
+-- chasing list is written. Holds no vote and no code.
+CREATE TABLE IF NOT EXISTS list_matches (
+  phone       TEXT PRIMARY KEY,
+  -- The voter he turned out to be, or NULL when the admin has looked at the
+  -- pair and said they are two different men.
+  voter_id    TEXT,
+  decided_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Table: ballots. The ballot box. What was chosen. Never contains anything
 -- that identifies a person, a device, a network address or a precise moment
 -- in time.
@@ -323,7 +336,8 @@ async function createSchema(): Promise<void> {
         WHERE table_schema = 'public'
           AND table_name = 'voters'
           AND column_name = 'show_code'
-      ) AS ready
+      )
+      AND to_regclass('public.list_matches') IS NOT NULL AS ready
   `;
   if (ready?.ready) return;
 

@@ -33,7 +33,7 @@ const ADDED_COLUMNS: [string, string][] = [
   ["settings", "registration_open"],
   ["settings", "roster_locked"],
 ];
-const ADDED_TABLES = ["allowed_numbers"];
+const ADDED_TABLES = ["allowed_numbers", "list_matches"];
 
 // --- put the database back the way it looked before this version ----------
 for (const [table, column] of ADDED_COLUMNS) {
