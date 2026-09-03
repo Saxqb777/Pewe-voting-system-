@@ -323,6 +323,125 @@ export async function namesPdf(
   return doc.save();
 }
 
+/**
+ * Both sides of the society's list in one file.
+ *
+ * The chasing list on its own put men in the group who had already
+ * registered, and every one of them said so. Sent as a pair, a man finds his
+ * own name on the side he belongs on and settles it himself, and the two
+ * numbers add up to the list in front of everybody.
+ */
+export async function bothListsPdf(
+  registered: { name: string; phone: string; joined: string }[],
+  missing: { name: string; phone: string; joined: string }[],
+  when: string,
+): Promise<Uint8Array> {
+  const a = strings.admin;
+  const doc = await PDFDocument.create();
+  const regular = await doc.embedFont(StandardFonts.Helvetica);
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const ctx: Ctx = { doc, page: doc.addPage(A4), y: A4[1] - MARGIN, regular, bold };
+
+  doc.setTitle(a.bothHeading);
+  doc.setAuthor(strings.common.orgName);
+
+  await letterhead(ctx);
+
+  ctx.y -= 26;
+  text(ctx, a.bothHeading, { size: 18, font: bold });
+  ctx.y -= 16;
+  text(ctx, a.bothHeadingHi, { size: 11, color: SOFT });
+  ctx.y -= 16;
+  text(ctx, a.bothCount(registered.length, missing.length), {
+    size: 11, font: bold, color: BRAND,
+  });
+  ctx.y -= 14;
+  text(ctx, a.namesTaken(when), { size: 9, color: SOFT });
+  ctx.y -= 12;
+  text(ctx, a.bothCheck, { size: 9, color: SOFT });
+  ctx.y -= 12;
+  text(ctx, a.bothCheckHi, { size: 9, color: SOFT });
+
+  const NUM = MARGIN;
+  const NAME = MARGIN + 26;
+  const PHONE = MARGIN + 250;
+  const JOINED = A4[0] - MARGIN;
+  const ROW = 15;
+
+  const side = (
+    title: string,
+    titleHi: string,
+    rows: { name: string; phone: string; joined: string }[],
+    tone: typeof BRAND,
+    withJoined: boolean,
+  ) => {
+    ctx.y -= 26;
+    if (ctx.y < MARGIN + 90) newPage(ctx);
+    text(ctx, title, { size: 13, font: bold, color: tone });
+    ctx.y -= 13;
+    text(ctx, titleHi, { size: 9.5, color: SOFT });
+
+    const heading = () => {
+      ctx.y -= 18;
+      text(ctx, a.namesColName, { size: 8.5, font: bold, color: SOFT, x: NAME });
+      text(ctx, a.namesColPhone, { size: 8.5, font: bold, color: SOFT, x: PHONE });
+      if (withJoined) {
+        rightText(ctx, a.namesColJoined, JOINED, { size: 8.5, font: bold, color: SOFT });
+      }
+      ctx.y -= 6;
+      ctx.page.drawLine({
+        start: { x: MARGIN, y: ctx.y },
+        end: { x: A4[0] - MARGIN, y: ctx.y },
+        thickness: 1,
+        color: RULE,
+      });
+      ctx.y -= 14;
+    };
+    heading();
+
+    rows.forEach((row, i) => {
+      if (ctx.y < MARGIN + 54) {
+        newPage(ctx);
+        heading();
+      }
+      ctx.page.drawText(String(i + 1), {
+        x: NUM, y: ctx.y, size: 9, font: regular, color: SOFT,
+      });
+      ctx.page.drawText(row.name.slice(0, 40) || a.namesNoName, {
+        x: NAME, y: ctx.y, size: 10, font: regular, color: row.name ? INK : SOFT,
+      });
+      drawPhoneLink(ctx, row.phone, PHONE);
+      if (withJoined && row.joined) {
+        ctx.page.drawText(row.joined, {
+          x: JOINED - regular.widthOfTextAtSize(row.joined, 9),
+          y: ctx.y,
+          size: 9,
+          font: regular,
+          color: SOFT,
+        });
+      }
+      ctx.y -= ROW;
+    });
+  };
+
+  side(a.bothDone(registered.length), a.bothDoneHi, registered, BRAND, true);
+  side(a.bothLeft(missing.length), a.bothLeftHi, missing, rgb(0.66, 0.42, 0.03), false);
+
+  ctx.y = MARGIN + 30;
+  ctx.page.drawLine({
+    start: { x: MARGIN, y: ctx.y },
+    end: { x: A4[0] - MARGIN, y: ctx.y },
+    thickness: 1,
+    color: RULE,
+  });
+  ctx.y -= 14;
+  text(ctx, a.bothPrivacy, { size: 9, color: SOFT });
+  ctx.y -= 12;
+  text(ctx, a.bothPrivacyHi, { size: 9, color: SOFT });
+
+  return doc.save();
+}
+
 export async function reportPdf(
   report: Report,
   when: string,

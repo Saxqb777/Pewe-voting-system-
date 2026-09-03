@@ -7,7 +7,7 @@ import {
   VOTER_FAILED_ATTEMPT_FLAG_THRESHOLD,
 } from "./config";
 import { describeGap, describeGapHi } from "./countdown";
-import { displayPhone, normalisePhone } from "./phone";
+import { displayPhone, normalisePhone, sameNumber } from "./phone";
 import { strings } from "./strings";
 import { societyName } from "./society-contacts";
 
@@ -602,6 +602,14 @@ export type PublicStatus = {
    * number in the one form a phone will actually ring.
    */
   people: { name: string; phone: string; dial: string; joined: string }[];
+  /**
+   * The men on the society's list who have not registered yet, so the group
+   * can chase them without anybody asking the admin for a file. Same shape as
+   * `people`, with no arrival time to show.
+   */
+  missing: { name: string; phone: string; dial: string }[];
+  /** Every figure the admin's report carries, so the page can show its own. */
+  report: Report;
 };
 
 /**
@@ -627,6 +635,8 @@ export async function getPublicStatus(): Promise<PublicStatus> {
     WHERE status = 'approved'
     ORDER BY registered_at NULLS LAST, name
   `;
+
+  const [missing, report] = await Promise.all([getNotRegisteredList(), getReport()]);
 
   const opening = settings.opensAt ?? config.electionOpensAt;
   const registered = counts?.registered ?? 0;
@@ -661,6 +671,132 @@ export async function getPublicStatus(): Promise<PublicStatus> {
           })
         : "",
     })),
+    missing: missing.map((m) => ({
+      name: m.name,
+      phone: m.phone,
+      dial: `+${normalisePhone(m.phone)}`,
+    })),
+    report,
+  };
+}
+
+/**
+ * Who the society is still waiting on.
+ *
+ * Every number the admin loaded that has not registered yet, with whatever
+ * name the list carried for it. This is the chasing list, so the number
+ * matters more than the name and both are on it.
+ */
+/**
+ * One man's name reduced to the part that identifies him.
+ *
+ * A contacts export gives the same man a second entry for his second phone
+ * and tells the two apart with a counter, "Akbar Pewekar 2". Chasing that
+ * second number after he has registered on the first is how a man who did
+ * what he was asked ends up on a list in the group saying he did not.
+ */
+function nameKey(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z ]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * The society's list split into the men who have registered and the men who
+ * have not.
+ *
+ * A number counts as registered when somebody registered on it, and so does
+ * every other number on the list belonging to the same man, because the
+ * society's list holds two and three numbers for men who work abroad.
+ */
+export async function splitTheList(): Promise<{
+  registered: RegisteredRow[];
+  missing: RegisteredRow[];
+}> {
+  await ensureSchema();
+
+  const [allowed, voters] = await Promise.all([
+    sql<{ phone: string; known_name: string }[]>`
+      SELECT phone, known_name FROM allowed_numbers
+    `,
+    sql<{ name: string; phone: string | null; registered_at: Date | null }[]>`
+      SELECT name, phone, registered_at FROM voters
+    `,
+  ]);
+
+  const entries = allowed.map((a) => ({
+    phone: a.phone,
+    name: a.known_name || societyName(a.phone),
+    voter: voters.find((v) => v.phone && sameNumber(v.phone, a.phone)) ?? null,
+  }));
+
+  // Every name already accounted for: the name each man typed himself, and
+  // the name the society's list carries against a number he registered on.
+  const accountedFor = new Set<string>();
+  for (const v of voters) {
+    const key = nameKey(v.name);
+    if (key !== "") accountedFor.add(key);
+  }
+  for (const e of entries) {
+    const key = nameKey(e.name);
+    if (e.voter && key !== "") accountedFor.add(key);
+  }
+
+  const row = (e: (typeof entries)[number]): RegisteredRow => ({
+    name: e.name,
+    phone: displayPhone(e.phone),
+    joined: e.voter?.registered_at
+      ? e.voter.registered_at.toLocaleString("en-GB", {
+          timeZone: "Asia/Kolkata",
+          day: "numeric",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        })
+      : "",
+  });
+
+  const byName = (a: RegisteredRow, b: RegisteredRow) =>
+    a.name.localeCompare(b.name) || a.phone.localeCompare(b.phone);
+
+  const isIn = (e: (typeof entries)[number]) => {
+    if (e.voter) return true;
+    const key = nameKey(e.name);
+    return key !== "" && accountedFor.has(key);
+  };
+
+  // Everybody who registered from a number the society never had. They are on
+  // no entry above, so without this they appear on neither list, and a man who
+  // did register looks in the file the group was sent and cannot find himself.
+  const onTheList = new Set(
+    entries.filter(isIn).map((e) => nameKey(e.name)).filter((k) => k !== ""),
+  );
+  const offList = voters
+    .filter((v) => !entries.some((e) => e.voter === v))
+    // Unless the society's list already names him, in which case that entry
+    // stands for him and carries the number the society has for him.
+    .filter((v) => !onTheList.has(nameKey(v.name)))
+    .map((v) => ({
+      name: v.name,
+      phone: v.phone ? displayPhone(v.phone) : "",
+      joined: v.registered_at
+        ? v.registered_at.toLocaleString("en-GB", {
+            timeZone: "Asia/Kolkata",
+            day: "numeric",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          })
+        : "",
+    }));
+
+  return {
+    registered: [...entries.filter(isIn).map(row), ...offList].sort(byName),
+    missing: entries.filter((e) => !isIn(e)).map(row).sort(byName),
   };
 }
 
@@ -672,21 +808,7 @@ export async function getPublicStatus(): Promise<PublicStatus> {
  * matters more than the name and both are on it.
  */
 export async function getNotRegisteredList(): Promise<RegisteredRow[]> {
-  await ensureSchema();
-  const rows = await sql<{ phone: string; known_name: string }[]>`
-    SELECT phone, known_name FROM allowed_numbers a
-    WHERE NOT EXISTS (SELECT 1 FROM voters v WHERE v.phone = a.phone)
-    ORDER BY known_name, phone
-  `;
-  // Sorted here rather than in the query, because a name standing in from
-  // the society's own list is not in the column the database ordered on.
-  return rows
-    .map((r) => ({
-      name: r.known_name || societyName(r.phone),
-      phone: displayPhone(r.phone),
-      joined: "",
-    }))
-    .sort((a, b) => a.name.localeCompare(b.name) || a.phone.localeCompare(b.phone));
+  return (await splitTheList()).missing;
 }
 
 // --------------------------------------------------------------------------
@@ -761,10 +883,9 @@ export async function getReport(): Promise<Report> {
     allowed: 0, approved: 0, pending: 0, voted: 0, ballots: 0, off_list: 0,
   };
 
-  const [stillOut] = await sql<{ n: number }[]>`
-    SELECT COUNT(*)::int AS n FROM allowed_numbers a
-    WHERE NOT EXISTS (SELECT 1 FROM voters v WHERE v.phone = a.phone)
-  `;
+  // Counted the same way the chasing list is written, so the figure on the
+  // page and the names in the file can never disagree with each other.
+  const stillOut = (await splitTheList()).missing.length;
 
   /** One figure, written once in each language. */
   const line = (
@@ -901,7 +1022,7 @@ export async function getReport(): Promise<Report> {
       line("Numbers allowed to register", hi.lines.allowed, counts.allowed, ofExpected),
       line("Registered and on the roster", hi.lines.onRoster, onRoster, ofExpected),
       line("Waiting for approval", hi.lines.waiting, counts.pending, ofExpected),
-      line("On your list, not registered yet", hi.lines.stillOut, stillOut?.n ?? 0, ofAllowed),
+      line("On your list, not registered yet", hi.lines.stillOut, stillOut, ofAllowed),
       line(
         "Registered from a number not on your list",
         hi.lines.offList,

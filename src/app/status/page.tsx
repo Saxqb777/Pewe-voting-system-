@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ensureSchema } from "@/lib/db";
-import { getPublicStatus } from "@/lib/admin-data";
+import { getPublicStatus, type ReportLine } from "@/lib/admin-data";
 import { getSettings } from "@/lib/settings";
 import { strings } from "@/lib/strings";
 import { Screen } from "@/components/Screen";
@@ -18,9 +18,60 @@ export const metadata = {
  * The page the group pins.
  *
  * Anybody may open it and nobody has to ask the admin for a file. It carries
- * names and counts and nothing else: no phone numbers, no voting codes, and
- * not one word about how a single person voted.
+ * names, numbers and counts and nothing else: no voting codes, and not one
+ * word about how a single person voted.
  */
+
+/**
+ * One figure with its share, drawn the same way the report draws it.
+ *
+ * The bar is there for the man reading it on a phone at arm's length, who
+ * takes the length in before he reads either number.
+ */
+function Figure({ line }: { line: ReportLine }) {
+  const s = strings.status;
+  return (
+    <li className="border-t border-line py-2 first:border-t-0">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+        <span className="min-w-0 text-base text-ink">
+          {line.label}
+          <span className="block text-sm text-ink-soft">{line.labelHi}</span>
+        </span>
+        <span className="shrink-0 text-right">
+          <span className="text-xl font-bold tabular-nums text-ink">{line.count}</span>
+          {line.percent === null ? null : (
+            <span className="ml-2 text-sm tabular-nums text-ink-soft">
+              {s.statsOf(line.percent, line.outOf)}
+            </span>
+          )}
+        </span>
+      </div>
+      {line.percent === null ? null : (
+        <div aria-hidden className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-paper">
+          <div
+            className="h-full rounded-full bg-brand"
+            style={{ width: `${Math.min(100, line.percent)}%` }}
+          />
+        </div>
+      )}
+    </li>
+  );
+}
+
+/** A named block of figures, skipped entirely when it holds none. */
+function Block({ title, lines }: { title: string; lines: ReportLine[] }) {
+  if (lines.length === 0) return null;
+  return (
+    <section className="mt-5 rounded-2xl bg-card p-4">
+      <h3 className="text-xs font-bold uppercase tracking-wide text-ink-soft">{title}</h3>
+      <ul className="mt-2">
+        {lines.map((line) => (
+          <Figure key={line.label} line={line} />
+        ))}
+      </ul>
+    </section>
+  );
+}
 export default async function StatusPage() {
   await ensureSchema();
   const [status, settings] = await Promise.all([getPublicStatus(), getSettings()]);
@@ -146,6 +197,65 @@ export default async function StatusPage() {
             ))}
           </ul>
         ) : null}
+      </section>
+
+      {status.missing.length > 0 ? (
+        <section className="mt-8">
+          <h2 className="text-base font-bold text-ink">
+            {s.missingHeading(status.missing.length)}
+          </h2>
+          <p className="mt-1 text-sm text-ink-soft">{s.missingHeadingHi}</p>
+          <p className="mt-2 text-sm text-ink-soft">
+            {s.missingHelp}
+            <span className="block">{s.missingHelpHi}</span>
+          </p>
+
+          <ul className="mt-3 space-y-1">
+            {status.missing.map((person, i) => (
+              <li
+                key={`${person.dial}-${i}`}
+                className="flex flex-wrap items-baseline justify-between gap-2 rounded-lg bg-card px-3 py-2"
+              >
+                <span className="min-w-0">
+                  <span className="block text-base text-ink">
+                    <span className="mr-2 text-sm text-ink-faint tabular-nums">{i + 1}</span>
+                    {person.name || s.missingNoName}
+                  </span>
+                  <a
+                    href={`tel:${person.dial}`}
+                    className="ml-6 mt-0.5 inline-flex min-h-8 items-center font-mono text-sm text-brand underline"
+                  >
+                    {person.phone}
+                  </a>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {/* The same figures the admin reads, so nobody has to ask him for them. */}
+      <section className="mt-10">
+        <h2 className="text-base font-bold text-ink">{s.statsHeading}</h2>
+        <p className="mt-1 text-sm text-ink-soft">{s.statsHeadingHi}</p>
+        <p className="mt-2 text-sm text-ink-soft">
+          {s.statsAgainst(status.report.expected)}
+          <span className="mt-1 block">{s.statsAgainstHi(status.report.expected)}</span>
+        </p>
+
+        {status.report.pace ? (
+          <p className="mt-4 rounded-xl bg-card p-4 text-base font-semibold text-ink">
+            {status.report.pace}
+            <span className="mt-1 block font-normal text-ink-soft">
+              {status.report.paceHi}
+            </span>
+          </p>
+        ) : null}
+
+        <Block title={strings.admin.reportTarget} lines={status.report.target} />
+        <Block title={strings.admin.reportRegistration} lines={status.report.registration} />
+        <Block title={strings.admin.reportVoting} lines={status.report.voting} />
+        <Block title={strings.admin.reportCountries} lines={status.report.countries} />
       </section>
 
       <p className="mt-6 text-center text-sm text-ink-soft">{s.updated(checked)}</p>

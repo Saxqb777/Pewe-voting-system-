@@ -816,10 +816,24 @@ function RosterPanel({ data }: { data: DashboardData }) {
             </a>
           </div>
 
+          {/* First, because a list that names only the men who are missing is
+              what brought the complaints. */}
+          <div>
+            <a
+              href="/api/admin/roster/both"
+              className="inline-flex min-h-12 items-center rounded-xl bg-brand px-4 py-2 text-base font-semibold text-white"
+            >
+              {strings.admin.bothDownload}
+            </a>
+            <p className="mt-2 text-sm text-ink-soft">
+              {strings.admin.bothDownloadHelp}
+            </p>
+          </div>
+
           <div>
             <a
               href="/api/admin/roster/names"
-              className="inline-flex min-h-12 items-center rounded-xl bg-brand px-4 py-2 text-base font-semibold text-white"
+              className="inline-flex min-h-12 items-center rounded-xl border-2 border-line bg-card px-4 py-2 text-base font-semibold text-ink"
             >
               {strings.admin.namesDownload}
             </a>

@@ -154,6 +154,18 @@ export const strings = {
     colJoined: "Registered",
     joinIn: "Not on the list yet? Register here",
     joinInHi: "Aapne abhi tak register nahi kiya? Yahan kijiye",
+    statsHeading: "The full figures",
+    statsHeadingHi: "Poore aankde",
+    statsAgainst: (n: number) =>
+      `Every share below is worked out against the ${n} people the society expects to take part.`,
+    statsAgainstHi: (n: number) =>
+      `Neeche ke sabhi percentage un ${n} logon ke muqable nikale gaye hain jinke aane ki ummeed hai.`,
+    statsOf: (percent: number, outOf: string) => `${percent}% of ${outOf}`,
+    missingHeading: (n: number) => `The ${n} still to register`,
+    missingHeadingHi: "Jinhone abhi tak register nahi kiya",
+    missingHelp: "Tap any number to call and remind him.",
+    missingHelpHi: "Kisi bhi number par tap karke call kijiye aur yaad dilaiye.",
+    missingNoName: "No name on file",
     updated: (when: string) => `Last checked ${when}`,
     privacy: "No voting codes are on this page, and nothing at all about how anybody voted.",
     privacyHi: "Is page par koi voting code nahi hai, aur kisi ke vote ke baare mein kuch bhi nahi.",
@@ -607,6 +619,25 @@ export const strings = {
     missingPrivacyHi:
       "Yeh sab log society ki list mein hain aur inhone abhi tak register nahi kiya. Inhe call kijiye.",
     namesNoName: "No name on file",
+    bothHeading: "Registered and still to register",
+    bothHeadingHi: "Kaun register ho chuke aur kaun baaki hain",
+    bothCount: (done: number, left: number) =>
+      `${done} registered, ${left} still to register`,
+    bothCheck:
+      "Find your own name below. If it is on the first list you are done and nobody needs to call you.",
+    bothCheckHi:
+      "Neeche apna naam dhoondhiye. Agar pehli list mein hai to aapka kaam ho gaya, koi aapko call nahi karega.",
+    bothDone: (n: number) => `Already registered (${n})`,
+    bothDoneHi: "Yeh log register ho chuke hain",
+    bothLeft: (n: number) => `Still to register (${n})`,
+    bothLeftHi: "Yeh log abhi baaki hain",
+    bothPrivacy:
+      "A man with two numbers on the society's list counts as registered on both. No voting codes are on this page.",
+    bothPrivacyHi:
+      "Jinke do number list mein hain, unke dono number register maane gaye hain. Is page par koi voting code nahi hai.",
+    bothDownload: "Download both lists to share",
+    bothDownloadHelp:
+      "Registered and still to register in one file, so a man can find his own name and see he is done. Safe to send in the group.",
     missingDownload: "Download who has not registered",
     missingDownloadHelp:
       "The numbers on your list that have not come in yet, so you know who to call. For you, not for the group.",
