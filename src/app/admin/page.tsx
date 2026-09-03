@@ -2,6 +2,7 @@ import { checkConfig } from "@/lib/config";
 import { readAdminSession } from "@/lib/session";
 import { getSettings } from "@/lib/settings";
 import { pingDatabase } from "@/lib/db";
+import { openWhenDue } from "@/lib/auto-open";
 import { getDashboard } from "@/lib/admin-data";
 import { Screen } from "@/components/Screen";
 import { AdminLogin } from "@/components/admin/AdminLogin";
@@ -38,6 +39,7 @@ export default async function AdminPage() {
     );
   }
 
+  await openWhenDue();
   const settings = await getSettings();
   const signedIn = await readAdminSession();
 

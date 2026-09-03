@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ensureSchema } from "@/lib/db";
+import { openWhenDue } from "@/lib/auto-open";
 import { getPublicStatus, type ReportLine } from "@/lib/admin-data";
 import { getSettings } from "@/lib/settings";
 import { strings } from "@/lib/strings";
@@ -75,6 +76,7 @@ function Block({ title, lines }: { title: string; lines: ReportLine[] }) {
 }
 export default async function StatusPage() {
   await ensureSchema();
+  await openWhenDue();
   const [status, settings] = await Promise.all([getPublicStatus(), getSettings()]);
   const s = strings.status;
 

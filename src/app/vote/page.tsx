@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSettings } from "@/lib/settings";
+import { openWhenDue } from "@/lib/auto-open";
 import { readVoterSession } from "@/lib/session";
 import { getCandidates } from "@/lib/candidates";
 import { Screen } from "@/components/Screen";
@@ -12,6 +13,7 @@ export default async function VotePage() {
   const session = await readVoterSession();
   if (!session.voterId) redirect("/");
 
+  await openWhenDue();
   const settings = await getSettings();
   if (!settings.votingOpen) redirect("/");
 

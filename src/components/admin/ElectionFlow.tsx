@@ -301,8 +301,7 @@ export function ElectionFlow({
         <Step n={5} state={step[5]} title={a.step5}
           detail={
             data.hasStarted ? a.step5Done
-              : data.opensAt ? a.step5Auto(readable(data.opensAt))
-                : a.step5Todo
+              : a.step5Auto(readable(data.opensAt ?? data.defaultOpensAt))
           }>
           {step[5] === "now" ? (
             <Button disabled={pending}

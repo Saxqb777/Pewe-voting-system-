@@ -293,11 +293,12 @@ export const strings = {
     step4: "Confirm the voter list",
     step4Done: (n: number) => `Fixed at ${n} voters`,
     step4Todo:
-      "Closes registration for good and sets the voting dates. Press it when enough people are in.",
+      "Closes registration for good. Press it when enough people are in, or leave it: the voting hour does the same thing on its own.",
     step5: "Voting opens",
     step5Done: "Voting has started",
-    step5Auto: (when: string) => `Opens on its own on ${when}. Nothing to do.`,
-    step5Todo: "Set once you confirm the voter list.",
+    step5Auto: (when: string) =>
+      `Opens on its own on ${when}, whether or not you press step 4 first. Nothing to do.`,
+
     step5Button: "Start voting now",
     step5Confirm:
       "Start voting now, before the set time? Voters will be able to vote immediately.",

@@ -1,4 +1,5 @@
 import { sql, ensureSchema } from "@/lib/db";
+import { openWhenDue } from "@/lib/auto-open";
 import { config } from "@/lib/config";
 import { getSettings } from "@/lib/settings";
 import { readVoterSession, readRegistrationMark } from "@/lib/session";
@@ -19,6 +20,8 @@ export default async function EntryPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   await ensureSchema();
+  // The hour may have arrived while nobody was looking at the admin page.
+  await openWhenDue();
   const settings = await getSettings();
   const session = await readVoterSession();
 
