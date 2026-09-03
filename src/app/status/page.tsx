@@ -135,15 +135,14 @@ export default async function StatusPage() {
           <div className="h-full rounded-full bg-brand" style={{ width: `${pct}%` }} />
         </div>
 
-        {/* Only the finish is worth announcing here. A count of who is left
-            reads as a rebuke to the men still to come, and the share above
-            already says how far along the village is. */}
-        {status.stillToCome === 0 ? (
-          <p className="mt-3 text-base font-semibold text-ink">
-            {s.everybodyIn}
-            <span className="mt-1 block font-normal text-ink-soft">{s.everybodyInHi}</span>
-          </p>
-        ) : null}
+        <p className="mt-3 text-base font-semibold text-ink">
+          {status.stillToCome > 0 ? s.stillToCome(status.stillToCome) : s.everybodyIn}
+          <span className="mt-1 block font-normal text-ink-soft">
+            {status.stillToCome > 0
+              ? s.stillToComeHi(status.stillToCome)
+              : s.everybodyInHi}
+          </span>
+        </p>
 
         <p className="mt-3 text-sm font-semibold text-ink-soft">
           {stage[0]}

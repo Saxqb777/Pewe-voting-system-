@@ -6,12 +6,7 @@ import { getSettings } from "@/lib/settings";
 import { strings } from "@/lib/strings";
 import { getClientIp } from "@/lib/request-info";
 import { generateVoterIds } from "@/lib/voter-id-generator";
-import {
-  normalisePhone,
-  looksLikeAPhoneNumber,
-  sameNumber,
-  displayPhone,
-} from "@/lib/phone";
+import { normalisePhone, looksLikeAPhoneNumber, sameNumber } from "@/lib/phone";
 import { normaliseCountry } from "@/lib/countries";
 import { toInternational } from "@/lib/phone-parse";
 import { parseAllowList } from "@/lib/allow-list";
@@ -330,84 +325,6 @@ export async function openRegistration(phrase: string): Promise<AdminResult> {
   revalidatePath("/admin");
   revalidatePath("/");
   return { ok: true, message: "Registration is open. People can now put their own names in." };
-}
-
-/**
- * Records that a contact list entry and a man who registered are one person.
- *
- * The society has him on an old number, he registered on a new one, and no
- * two rows in the database know that. Nothing but a person can say so, and
- * once said it is kept, so the chasing lists stop naming a man who is
- * already in and nobody has to remember it again tomorrow.
- *
- * Changes nothing about his registration, his code or his place on the
- * roster. It only answers a question the data cannot answer for itself.
- */
-export async function linkToRegistration(
-  listPhone: string,
-  voterId: string,
-): Promise<AdminResult> {
-  if (!(await readAdminSession())) return NOT_SIGNED_IN;
-  await ensureSchema();
-
-  const phone = normalisePhone(listPhone);
-  const [voter] = await sql<{ name: string }[]>`
-    SELECT name FROM voters WHERE voter_id = ${voterId}
-  `;
-  if (!voter) return { ok: false, message: "That person is no longer on the register." };
-
-  const [entry] = await sql<{ known_name: string }[]>`
-    SELECT known_name FROM allowed_numbers WHERE phone = ${phone}
-  `;
-  if (!entry) return { ok: false, message: "That number is no longer on the list." };
-
-  await sql`
-    INSERT INTO list_matches (phone, voter_id) VALUES (${phone}, ${voterId})
-    ON CONFLICT (phone) DO UPDATE SET voter_id = ${voterId}, decided_at = NOW()
-  `;
-  await audit(
-    "link_registration",
-    `${entry.known_name || phone} is ${voter.name}. Taken off the chasing list.`,
-  );
-  revalidatePath("/admin");
-  return {
-    ok: true,
-    message: `${entry.known_name || displayPhone(phone)} is ${voter.name}. He will not be chased again.`,
-  };
-}
-
-/**
- * Records that a pair the system thought might be one man are two men.
- *
- * Kept rather than simply ignored, so the same pair is not put in front of
- * the admin every time the page is opened.
- */
-export async function notTheSameMan(listPhone: string): Promise<AdminResult> {
-  if (!(await readAdminSession())) return NOT_SIGNED_IN;
-  await ensureSchema();
-
-  const phone = normalisePhone(listPhone);
-  await sql`
-    INSERT INTO list_matches (phone, voter_id) VALUES (${phone}, NULL)
-    ON CONFLICT (phone) DO UPDATE SET voter_id = NULL, decided_at = NOW()
-  `;
-  await audit("not_the_same_man", `${phone} stays on the chasing list.`);
-  revalidatePath("/admin");
-  return { ok: true, message: "Noted. He stays on the list of people to chase." };
-}
-
-/**
- * Undoes either decision, putting the pair back in front of the admin.
- */
-export async function unlinkRegistration(listPhone: string): Promise<AdminResult> {
-  if (!(await readAdminSession())) return NOT_SIGNED_IN;
-  await ensureSchema();
-
-  const phone = normalisePhone(listPhone);
-  await sql`DELETE FROM list_matches WHERE phone = ${phone}`;
-  await audit("unlink_registration", `${phone} is open again.`);
-  revalidatePath("/admin");
-  return { ok: true, message: "Put back. You can decide it again." };
 }
 
 /**

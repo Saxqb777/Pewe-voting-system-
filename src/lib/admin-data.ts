@@ -362,11 +362,6 @@ export type RegistrationState = {
   pending: Registration[];
   /** Allowed numbers that have not registered yet. */
   missing: { phone: string; knownName: string }[];
-  /**
-   * Contact list entries that look like a man who already registered on
-   * another number, waiting on the admin to say yes or no.
-   */
-  possible: PossibleMatch[];
 };
 
 export type Dashboard = {
@@ -464,7 +459,6 @@ export async function getRegistrationState(): Promise<RegistrationState> {
     approved: people.filter((p) => p.status === "approved").map(shape),
     pending: people.filter((p) => p.status === "pending").map(shape),
     missing: split.missing.map((m) => ({ phone: m.phone, knownName: m.name })),
-    possible: split.possible,
   };
 }
 
@@ -551,20 +545,6 @@ export async function getDashboard(): Promise<Dashboard> {
 // --------------------------------------------------------------------------
 // The list that can be shared
 // --------------------------------------------------------------------------
-
-/**
- * A contact list entry that nobody registered on, standing beside the men it
- * could be. Never resolved on its own: a name that fits more than one man is
- * exactly the case where guessing puts the wrong man on a list.
- */
-export type PossibleMatch = {
-  /** The contact list number, as it reads. */
-  phone: string;
-  /** The same number in the form every other table holds it. */
-  rawPhone: string;
-  listName: string;
-  candidates: { voterId: string; name: string; phone: string }[];
-};
 
 export type RegisteredRow = { name: string; phone: string; joined: string };
 
@@ -713,143 +693,71 @@ function nameKey(name: string): string {
 }
 
 /**
- * Words in a name that say nothing about which man it is.
+ * True when two names are one man written two ways.
  *
- * The society's list is somebody's phone book, so it tells men of the same
- * name apart by where they live or which network they are on: "Hanif India",
- * "Kauser Dubai", "Hussein Khan Airtel". A trailing digit is the phone book
- * numbering a second entry for one man. And half the village shares a
- * surname. None of it narrows anything down, so matching works on what is
- * left after these are set aside.
+ * The society's list has him as "Iqbal H Khan" and he types "Iqbal Khan", or
+ * the list says "A Qader Khan" and he adds where he lives. Every word of the
+ * shorter name has to appear in the longer one, and the shorter needs at
+ * least two words, so "Khan" alone never sweeps up half the village.
  */
-const SAYS_NOTHING = new Set([
-  "khan", "bhai", "sab", "saheb",
-  "dubai", "india", "qatar", "kuwait", "oman", "saudi", "sharjah", "abudhabi",
-  "airtel", "bsnl", "jio", "vodafone", "idea", "room", "office", "home",
-  "psws", "pewe", "pewa", "society",
-]);
-
-/** The words in a name that actually pick out a man. */
-function coreWords(name: string): string[] {
-  return nameKey(name)
-    .split(" ")
-    .filter((w) => w.length > 2 && !SAYS_NOTHING.has(w));
-}
-
-/**
- * True when two words are the same word spelled two ways.
- *
- * "Hussein" and "Hussain", "Pewekar" and "Pevekar", "Rahman" and "Rahiman":
- * one man writes his name the way he writes it and the phone book has it the
- * way somebody else heard it.
- */
-function sameWord(a: string, b: string): boolean {
+function samePerson(a: string, b: string): boolean {
+  if (a === "" || b === "") return false;
   if (a === b) return true;
-  if (Math.abs(a.length - b.length) > 2) return false;
-  if (a[0] !== b[0]) return false;
 
-  // Edit distance, capped at one for short words and two for long ones.
-  const allowed = Math.min(a.length, b.length) >= 6 ? 2 : 1;
-  const rows: number[][] = [];
-  for (let i = 0; i <= a.length; i++) rows.push([i, ...Array(b.length).fill(0)]);
-  for (let j = 0; j <= b.length; j++) rows[0][j] = j;
-  for (let i = 1; i <= a.length; i++) {
-    for (let j = 1; j <= b.length; j++) {
-      rows[i][j] = Math.min(
-        rows[i - 1][j] + 1,
-        rows[i][j - 1] + 1,
-        rows[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
-      );
-    }
-  }
-  return rows[a.length][b.length] <= allowed;
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+  const words = short.split(" ");
+  if (words.length < 2) return false;
+
+  const inLong = new Set(long.split(" "));
+  return words.every((w) => inLong.has(w));
 }
 
 /**
- * True when a contact list name could be this man written another way.
+ * The society's list split into the men who have registered and the men who
+ * have not.
  *
- * Every distinctive word the shorter name carries has to turn up in the
- * longer one. "Hanif India" against "HANIF U. Khan" comes down to "hanif"
- * against "hanif u", which passes. It also passes against "Hanif Razzak
- * Khan", and that is the point: this only says a pair is possible, never
- * that it is settled. Settling a name that fits more than one man is the
- * admin's to do, and is kept in list_matches.
+ * A number counts as registered when somebody registered on it, and so does
+ * every other number on the list belonging to the same man, because the
+ * society's list holds two and three numbers for men who work abroad.
  */
-function couldBeTheSameMan(listName: string, registeredName: string): boolean {
-  const list = coreWords(listName);
-  const reg = coreWords(registeredName);
-  if (list.length === 0 || reg.length === 0) return false;
-
-  const [short, long] = list.length <= reg.length ? [list, reg] : [reg, list];
-  return short.every((w) => long.some((x) => sameWord(w, x)));
-}
-
 export async function splitTheList(): Promise<{
   registered: RegisteredRow[];
   missing: RegisteredRow[];
-  /** Pairs that fit but that only a person can settle. */
-  possible: PossibleMatch[];
 }> {
   await ensureSchema();
 
-  const [allowed, voters, decided] = await Promise.all([
+  const [allowed, voters] = await Promise.all([
     sql<{ phone: string; known_name: string }[]>`
       SELECT phone, known_name FROM allowed_numbers
     `,
     sql<
       {
-        voter_id: string;
         name: string;
         phone: string | null;
         registered_at: Date | null;
         status: string;
       }[]
     >`
-      SELECT voter_id, name, phone, registered_at, status FROM voters
-    `,
-    sql<{ phone: string; voter_id: string | null }[]>`
-      SELECT phone, voter_id FROM list_matches
+      SELECT name, phone, registered_at, status FROM voters
     `,
   ]);
-
-  const settled = new Map(decided.map((d) => [d.phone, d.voter_id]));
 
   const entries = allowed.map((a) => ({
     phone: a.phone,
     name: a.known_name || societyName(a.phone),
-    // Check one: the number itself. Nothing beats it and nothing overrides it.
     voter: voters.find((v) => v.phone && sameNumber(v.phone, a.phone)) ?? null,
   }));
 
-  // Check two: a man the admin has already said is this entry, or has already
-  // said is not. Either way the question is answered and stays answered.
-  const answered = (phone: string) => settled.has(phone);
-  const linked = (phone: string) => settled.get(phone) ?? null;
-
-  // Check three: his name, against every man on the roster. Not only the men
-  // who registered on a number the society never had: the phone book often
-  // holds a man twice, "Akbar Pewekar" and "Akbar Pewekar 2", and he
-  // registers on one of them. The other entry is his too, and it is only his
-  // name that says so.
-  const onRoster = voters.filter((v) => v.status === "approved");
-
-  const possible: PossibleMatch[] = [];
+  // Every name already accounted for: the name each man typed himself, and
+  // the name the society's list carries against a number he registered on.
+  const accountedFor: string[] = [];
+  for (const v of voters) {
+    const key = nameKey(v.name);
+    if (key !== "") accountedFor.push(key);
+  }
   for (const e of entries) {
-    if (e.voter || answered(e.phone) || e.name === "") continue;
-    const fits = onRoster.filter((v) => couldBeTheSameMan(e.name, v.name));
-    if (fits.length === 0) continue;
-    possible.push({
-      phone: displayPhone(e.phone),
-      rawPhone: e.phone,
-      listName: e.name,
-      // One candidate is a straight question. More than one has to be
-      // chosen between, and neither is dropped quietly.
-      candidates: fits.map((v) => ({
-        voterId: v.voter_id,
-        name: v.name,
-        phone: v.phone ? displayPhone(v.phone) : "",
-      })),
-    });
+    const key = nameKey(e.name);
+    if (e.voter && key !== "") accountedFor.push(key);
   }
 
   const stamp = (at: Date | null) =>
@@ -867,8 +775,19 @@ export async function splitTheList(): Promise<{
   const byName = (a: RegisteredRow, b: RegisteredRow) =>
     a.name.localeCompare(b.name) || a.phone.localeCompare(b.phone);
 
+  const isIn = (e: (typeof entries)[number]) => {
+    if (e.voter) return true;
+    const key = nameKey(e.name);
+    return accountedFor.some((known) => samePerson(key, known));
+  };
+
   // A man is named on the registered side by the name and the number he put
-  // in himself, never by whatever the contact list called him.
+  // in himself, not by whatever the society's old contact list called him.
+  // The society's own spelling is for the men who have not registered, where
+  // there is nothing else to go on.
+  // Approved only, so this count is the same one every other panel shows.
+  // A man still waiting on the admin is not chased either: his number is
+  // matched above, he is simply not on the roster yet.
   const registered = voters
     .filter((v) => v.status === "approved")
     .map((v) => ({
@@ -878,16 +797,13 @@ export async function splitTheList(): Promise<{
     }))
     .sort(byName);
 
-  const isIn = (e: (typeof entries)[number]) =>
-    e.voter !== null || linked(e.phone) !== null;
-
   return {
     registered,
-    missing: entries
-      .filter((e) => !isIn(e))
-      .map((e) => ({ name: e.name, phone: displayPhone(e.phone), joined: "" }))
-      .sort(byName),
-    possible,
+    missing: entries.filter((e) => !isIn(e)).map((e) => ({
+      name: e.name,
+      phone: displayPhone(e.phone),
+      joined: "",
+    })).sort(byName),
   };
 }
 

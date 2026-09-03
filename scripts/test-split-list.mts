@@ -49,7 +49,7 @@ async function main() {
       ('100004', 'Iqbal Khan', 4, '919820066515', 'approved', NOW())
   `;
 
-  const { registered, missing, possible } = await splitTheList();
+  const { registered, missing } = await splitTheList();
   const named = (rows: { name: string }[]) => rows.map((r) => r.name).join(", ");
 
   check("everybody who registered is on the registered side",
@@ -57,13 +57,12 @@ async function main() {
     `${registered.length}: ${named(registered)}`);
 
   // The society writes him with his father's initial and he does not.
-  check("a name written two ways, on the number the society has, needs no asking",
-    !missing.some((m) => m.name === "Iqbal H Khan") &&
-      !possible.some((p) => p.listName === "Iqbal H Khan"),
+  check("a name written two ways is still one man",
+    !missing.some((m) => m.name === "Iqbal H Khan"),
     named(missing));
 
   // But a surname two men share must never stand in for either of them.
-  check("another Khan is still chased and never guessed away",
+  check("another Khan is still chased",
     missing.some((m) => m.name === "Shakir Khan"),
     named(missing));
 
@@ -78,9 +77,9 @@ async function main() {
   check("the man who registered is on the registered side",
     registered.some((r) => r.name === "Akbar Pewekar"));
 
-  check("his second number is raised as a question rather than chased blindly",
-    possible.some((p) => p.phone.includes("529069708")),
-    possible.map((p) => p.listName).join(", "));
+  check("his second number is not chased",
+    !missing.some((m) => m.phone.includes("529069708")),
+    named(missing));
 
   check("and he is named once, not once per number he owns",
     registered.filter((r) => r.name.startsWith("Akbar")).length === 1,
@@ -95,9 +94,9 @@ async function main() {
     registered.some((r) => r.name === "A Qader Khan Dubai" && r.phone.includes("9999999999")),
     registered.map((r) => `${r.name}/${r.phone}`).join(", "));
 
-  check("his entry on the society's list is raised the same way",
-    possible.some((p) => p.phone.includes("9657124760")),
-    possible.map((p) => p.listName).join(", "));
+  check("his entry on the society's list is not chased either",
+    !missing.some((m) => m.phone.includes("9657124760")),
+    named(missing));
 
   check("a man who has not registered is still chased",
     missing.some((r) => r.name === "A Gaffar Pewa"),
