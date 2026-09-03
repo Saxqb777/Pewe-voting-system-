@@ -206,6 +206,9 @@ export const strings = {
     title: "Choose your candidates",
     instruction: (n: number) => `Select exactly ${n} names.`,
     searchPlaceholder: "Search for a name",
+    thisIsYou: "This is you",
+    thisIsYouHi: "Yeh aap hain",
+    noSelfVote: "You cannot vote for yourself. Take your own name off and choose another.",
     noResults: "No name matches that search.",
     counter: (selected: number, total: number) =>
       `${selected} of ${total} selected`,

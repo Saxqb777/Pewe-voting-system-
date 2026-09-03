@@ -17,7 +17,7 @@ export default async function VotePage() {
   const settings = await getSettings();
   if (!settings.votingOpen) redirect("/");
 
-  const candidates = await getCandidates();
+  const candidates = await getCandidates(session.voterId);
 
   return (
     <Screen mode={settings.mode}>

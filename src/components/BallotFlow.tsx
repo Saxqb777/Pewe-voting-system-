@@ -50,6 +50,12 @@ export function BallotFlow({
 
   function toggle(number: number) {
     setError(null);
+    // Nobody votes for himself. Refused again on the server, so this only
+    // saves him the round trip and tells him why.
+    if (byNumber.get(number)?.isYou) {
+      setError(strings.ballot.noSelfVote);
+      return;
+    }
     setSelected((current) => {
       if (current.includes(number)) return current.filter((n) => n !== number);
       if (current.length >= required) {
@@ -82,7 +88,11 @@ export function BallotFlow({
           router.replace("/");
           return;
         }
-        setError(strings.common.somethingWentWrong);
+        setError(
+          result.status === "self_vote"
+            ? strings.ballot.noSelfVote
+            : strings.common.somethingWentWrong,
+        );
         setStep("select");
       } catch {
         setError(strings.common.somethingWentWrong);
@@ -132,16 +142,20 @@ export function BallotFlow({
         <ul className="mt-1 space-y-2">
           {visible.map((c) => {
             const isOn = selected.includes(c.number);
+            const you = c.isYou === true;
             return (
               <li key={c.number}>
                 <button
                   type="button"
                   onClick={() => toggle(c.number)}
+                  disabled={you}
                   aria-pressed={isOn}
                   className={`flex min-h-16 w-full items-center gap-3 rounded-xl border-2 px-3 py-3 text-left ${
-                    isOn
-                      ? "border-brand bg-brand-soft"
-                      : "border-line bg-card active:bg-brand-soft"
+                    you
+                      ? "cursor-not-allowed border-dashed border-line bg-paper opacity-70"
+                      : isOn
+                        ? "border-brand bg-brand-soft"
+                        : "border-line bg-card active:bg-brand-soft"
                   }`}
                 >
                   <span
@@ -160,17 +174,27 @@ export function BallotFlow({
                         {c.phone}
                       </span>
                     ) : null}
+                    {you ? (
+                      <span className="mt-0.5 block text-sm font-semibold text-ink-soft">
+                        {strings.ballot.thisIsYou}
+                        <span className="ml-2 font-normal">
+                          {strings.ballot.thisIsYouHi}
+                        </span>
+                      </span>
+                    ) : null}
                   </span>
-                  <span
-                    aria-hidden
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-base font-bold ${
-                      isOn
-                        ? "border-brand bg-brand text-white"
-                        : "border-line text-transparent"
-                    }`}
-                  >
-                    {isOn ? "✓" : ""}
-                  </span>
+                  {you ? null : (
+                    <span
+                      aria-hidden
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-base font-bold ${
+                        isOn
+                          ? "border-brand bg-brand text-white"
+                          : "border-line text-transparent"
+                      }`}
+                    >
+                      {isOn ? "✓" : ""}
+                    </span>
+                  )}
                 </button>
               </li>
             );

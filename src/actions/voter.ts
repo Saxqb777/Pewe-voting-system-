@@ -149,6 +149,7 @@ export type SubmitResult =
   | { status: "invalid" }
   | { status: "already_voted" }
   | { status: "closed" }
+  | { status: "self_vote" }
   | { status: "session_expired" };
 
 /**
@@ -188,6 +189,14 @@ export async function submitBallot(choices: number[]): Promise<SubmitResult> {
     WHERE candidate_number = ANY(${unique}::int[])
   `;
   if (validCount !== required) return { status: "invalid" };
+
+  // Nobody votes for himself. The ballot hides his own name, but the browser
+  // is never trusted about anything, so his own seat is checked here as well
+  // and a ballot carrying it is refused before it can be written.
+  const [own] = await sql<{ candidate_number: number }[]>`
+    SELECT candidate_number FROM voters WHERE voter_id = ${session.voterId}
+  `;
+  if (own && unique.includes(own.candidate_number)) return { status: "self_vote" };
 
   const ordered = [...unique].sort((a, b) => a - b);
   const outcome = await castBallot({
