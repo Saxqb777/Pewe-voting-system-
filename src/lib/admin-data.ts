@@ -349,6 +349,12 @@ export type RegistrationState = {
   locked: boolean;
   /** How many numbers are allowed to register at all. */
   allowedCount: number;
+  /**
+   * How many of those came with a name. A list pasted as bare numbers works
+   * perfectly well, but every chasing list it feeds then has no names on it,
+   * so the admin is told which kind of list they saved.
+   */
+  allowedNamed: number;
   /** Registered and on the roster. */
   approved: Registration[];
   /** Registered from a number nobody recognises, waiting on the admin. */
@@ -444,6 +450,7 @@ export async function getRegistrationState(): Promise<RegistrationState> {
     open: settings.registrationOpen,
     locked: settings.rosterLocked,
     allowedCount: allowed.length,
+    allowedNamed: allowed.filter((a) => a.known_name !== "").length,
     approved: people.filter((p) => p.status === "approved").map(shape),
     pending: people.filter((p) => p.status === "pending").map(shape),
     missing: allowed

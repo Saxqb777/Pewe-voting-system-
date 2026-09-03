@@ -262,6 +262,12 @@ export const strings = {
     stepsHeading: "Where you are",
     step1: "Load the numbers allowed to register",
     step1Done: (n: number) => `${n} numbers can register`,
+    regAllowedNamed: (named: number, total: number) =>
+      named === 0
+        ? "None of them carry a name, so the lists you send out will show the number on its own. Paste the list again with the name in front of each number to fix that."
+        : named < total
+          ? `${named} of them carry a name. The rest will show the number on its own.`
+          : "Every one of them carries a name.",
     step1Todo: "Paste the society's phone numbers in, one per line.",
     step2: "Open registration",
     step2Done: "Registration is open",
@@ -389,7 +395,7 @@ export const strings = {
       "People are not registering yet. Load the list of numbers allowed to register, then open it.",
     regAllowedLabel: "Numbers allowed to register",
     regAllowedHelp:
-      "One per line. A name in front of the number is kept but not required. Anyone whose number is not here can still register, but you have to approve them.",
+      "One per line. Put the name in front of the number, with a comma or a tab or just a space between them, and that name is what shows on the lists you send out. Anyone whose number is not here can still register, but you have to approve them.",
     regAllowedLoad: "Save this list",
     regAllowedReplace: (n: number) =>
       `Saving replaces all ${n} numbers currently on the list. Anyone who has already registered stays registered.`,
@@ -581,6 +587,7 @@ export const strings = {
     namesHeadingHi: "Jo log register ho chuke hain",
     namesCount: (n: number) => `${n} registered so far`,
     namesTaken: (when: string) => `As it stands on ${when}`,
+    namesTapToCall: "Tap any number to call it.",
     namesColName: "NAME",
     namesColPhone: "PHONE",
     namesColJoined: "REGISTERED",
@@ -590,7 +597,7 @@ export const strings = {
       "Is page par koi voting code nahi hai, aur kisi ke vote ke baare mein kuch bhi nahi.",
     statusLinkHeading: "The page the group can watch",
     statusLinkHelp:
-      "Send this link once and let them pin it. It shows who has registered and updates on its own, so nobody has to ask you for a file again. Names only, no numbers and no codes.",
+      "Send this link once and let them pin it. It shows who has registered and updates on its own, so nobody has to ask you for a file again. Names and numbers, and no codes.",
     statusLinkOpen: "Open it",
     missingHeading: "Not yet registered",
     missingHeadingHi: "Jinhone abhi tak register nahi kiya",

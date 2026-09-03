@@ -110,9 +110,18 @@ export function ElectionFlow({
               />
               <p className="mt-2 text-sm text-ink-soft">{a.regAllowedHelp}</p>
               {hasAllowList ? (
-                <p className="mt-2 text-sm font-medium text-warn">
-                  {a.regAllowedReplace(reg.allowedCount)}
-                </p>
+                <>
+                  <p
+                    className={`mt-2 text-sm font-medium ${
+                      reg.allowedNamed === 0 ? "text-warn" : "text-ink-soft"
+                    }`}
+                  >
+                    {a.regAllowedNamed(reg.allowedNamed, reg.allowedCount)}
+                  </p>
+                  <p className="mt-2 text-sm font-medium text-warn">
+                    {a.regAllowedReplace(reg.allowedCount)}
+                  </p>
+                </>
               ) : null}
               <div className="mt-3">
                 <Button

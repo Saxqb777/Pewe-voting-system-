@@ -1,7 +1,14 @@
 import "server-only";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { PDFDocument, StandardFonts, rgb, type PDFPage, type PDFFont } from "pdf-lib";
+import {
+  PDFDocument,
+  PDFString,
+  StandardFonts,
+  rgb,
+  type PDFPage,
+  type PDFFont,
+} from "pdf-lib";
 import type { Report, ReportLine } from "./admin-data";
 import { strings } from "./strings";
 
@@ -20,6 +27,7 @@ const SOFT = rgb(0.42, 0.46, 0.43);
 const BRAND = rgb(0.09, 0.38, 0.22);
 const RULE = rgb(0.85, 0.87, 0.85);
 const TRACK = rgb(0.92, 0.94, 0.92);
+const LINK = rgb(0.05, 0.32, 0.55);
 
 type Ctx = {
   doc: PDFDocument;
@@ -167,6 +175,49 @@ async function letterhead(ctx: Ctx): Promise<void> {
  * there is nothing on it that could let one man vote as another and nothing
  * that anybody would mind seeing shared.
  */
+/**
+ * A phone number that dials when it is tapped.
+ *
+ * The chasing lists go out as a file on a phone, so the number on the page is
+ * the number a man is about to ring. Drawn as a link annotation rather than
+ * plain text, with the reader who has printed it in mind: it still reads as a
+ * number on paper, it just also works in the hand.
+ */
+function drawPhoneLink(
+  ctx: Ctx,
+  display: string,
+  x: number,
+  size = 10,
+): void {
+  ctx.page.drawText(display, { x, y: ctx.y, size, font: ctx.regular, color: LINK });
+
+  const digits = display.replace(/\D/g, "");
+  if (digits.length < 8) return;
+
+  const width = ctx.regular.widthOfTextAtSize(display, size);
+  ctx.page.drawLine({
+    start: { x, y: ctx.y - 1.5 },
+    end: { x: x + width, y: ctx.y - 1.5 },
+    thickness: 0.4,
+    color: LINK,
+  });
+
+  const annotation = ctx.doc.context.register(
+    ctx.doc.context.obj({
+      Type: "Annot",
+      Subtype: "Link",
+      Rect: [x - 2, ctx.y - 4, x + width + 2, ctx.y + size],
+      Border: [0, 0, 0],
+      A: {
+        Type: "Action",
+        S: "URI",
+        URI: PDFString.of(`tel:+${digits}`),
+      },
+    }),
+  );
+  ctx.page.node.addAnnot(annotation);
+}
+
 export async function namesPdf(
   rows: { name: string; phone: string; joined: string }[],
   when: string,
@@ -203,6 +254,8 @@ export async function namesPdf(
   text(ctx, say.count, { size: 11, font: bold, color: missing ? rgb(0.66, 0.42, 0.03) : BRAND });
   ctx.y -= 14;
   text(ctx, a.namesTaken(when), { size: 9, color: SOFT });
+  ctx.y -= 12;
+  text(ctx, a.namesTapToCall, { size: 9, color: SOFT });
 
   // Column edges, measured once. Name gets the room because that is the
   // thing a man scans for.
@@ -243,9 +296,7 @@ export async function namesPdf(
     ctx.page.drawText(row.name.slice(0, 40) || a.namesNoName, {
       x: NAME, y: ctx.y, size: 10, font: regular, color: row.name ? INK : SOFT,
     });
-    ctx.page.drawText(row.phone, {
-      x: PHONE, y: ctx.y, size: 10, font: regular, color: INK,
-    });
+    drawPhoneLink(ctx, row.phone, PHONE);
     ctx.page.drawText(row.joined, {
       x: JOINED - regular.widthOfTextAtSize(row.joined, 9),
       y: ctx.y,

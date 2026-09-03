@@ -9,6 +9,7 @@ import { generateVoterIds } from "@/lib/voter-id-generator";
 import { normalisePhone, looksLikeAPhoneNumber, sameNumber } from "@/lib/phone";
 import { normaliseCountry } from "@/lib/countries";
 import { toInternational } from "@/lib/phone-parse";
+import { parseAllowList } from "@/lib/allow-list";
 import {
   readAdminSession,
   readRegistrationMark,
@@ -237,62 +238,48 @@ async function noBallotsYet(): Promise<AdminResult | null> {
 /**
  * Replaces the list of numbers allowed to register.
  *
- * Accepts one number per line, with or without a name in front of it. Every
- * number is reduced to digits, so the list can be pasted straight out of a
- * spreadsheet or a contacts export.
+ * Accepts one number per line, with or without a name in front of it, so the
+ * list can be pasted straight out of a spreadsheet, a contacts export or a
+ * message somebody forwarded.
  */
 export async function loadAllowedNumbers(text: string): Promise<AdminResult> {
   if (!(await readAdminSession())) return NOT_SIGNED_IN;
   await ensureSchema();
 
-  const rows: { phone: string; known_name: string }[] = [];
-  const seen = new Set<string>();
-  const rejected: string[] = [];
+  const { entries, rejected, named } = parseAllowList(text);
 
-  for (const line of (text ?? "").split("\n")) {
-    const trimmed = line.trim();
-    if (trimmed === "") continue;
-
-    // A line may be "Name,number", "number,Name" or a bare number.
-    const parts = trimmed.split(/[,\t;]/).map((p) => p.trim());
-    const numberPart = parts.find((p) => looksLikeAPhoneNumber(p)) ?? trimmed;
-    const namePart = parts.find((p) => p !== numberPart && p !== "") ?? "";
-
-    if (!looksLikeAPhoneNumber(numberPart)) {
-      rejected.push(trimmed.slice(0, 40));
-      continue;
-    }
-    // Worked out the same way a voter's own number is, so a list pasted with
-    // bare national numbers still reads properly everywhere it is shown.
-    const phone = toInternational(numberPart, null);
-    if (seen.has(phone)) continue;
-    seen.add(phone);
-    rows.push({ phone, known_name: namePart.slice(0, 60) });
-  }
-
-  if (rows.length === 0) {
+  if (entries.length === 0) {
     return { ok: false, message: "No usable phone numbers were found in that list." };
   }
 
   await sql.begin(async (tx) => {
     await tx`DELETE FROM allowed_numbers`;
-    for (const row of rows) {
+    for (const entry of entries) {
       await tx`
         INSERT INTO allowed_numbers (phone, known_name)
-        VALUES (${row.phone}, ${row.known_name})
+        VALUES (${entry.phone}, ${entry.knownName})
         ON CONFLICT (phone) DO NOTHING
       `;
     }
   });
 
-  await audit("load_allowed_numbers", `${rows.length} numbers allowed to register.`);
+  await audit("load_allowed_numbers", `${entries.length} numbers allowed to register.`);
   revalidatePath("/admin");
 
-  const note =
+  const skipped =
     rejected.length > 0
       ? ` ${rejected.length} line${rejected.length === 1 ? "" : "s"} had no usable number and were skipped.`
       : "";
-  return { ok: true, message: `${rows.length} numbers can now register.${note}` };
+  // Said out loud, because a list pasted as bare numbers still works but
+  // leaves every chasing list with nobody's name on it.
+  const names =
+    named === 0
+      ? " None of them carry a name, so put the name in front of each number if you want names on the lists."
+      : named < entries.length
+        ? ` ${named} of them carry a name.`
+        : " All of them carry a name.";
+
+  return { ok: true, message: `${entries.length} numbers can now register.${names}${skipped}` };
 }
 
 /**
