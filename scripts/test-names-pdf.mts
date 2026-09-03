@@ -7,6 +7,7 @@
  */
 import { PDFDocument, PDFName, PDFDict, PDFArray } from "pdf-lib";
 import { namesPdf } from "../src/lib/report-pdf";
+import { societyContactCount, societyName } from "../src/lib/society-contacts";
 
 let failures = 0;
 function check(label: string, condition: boolean, extra = "") {
@@ -63,6 +64,19 @@ check(
   "every row on every page is dialling",
   dialled(longDoc).length === 90,
   `${dialled(longDoc).length} links`,
+);
+
+// The society's list is what puts a name against a number the admin saved
+// bare, so its size is the size of the list they handed over.
+check(
+  "the society's own list is all 145 people",
+  societyContactCount === 145,
+  `${societyContactCount}`,
+);
+check(
+  "and the man Qatar side is on it",
+  societyName("97455884597") === "Nisar PSWS Qatar",
+  societyName("97455884597") || "missing",
 );
 
 console.log(failures === 0 ? "\nAll names PDF checks passed." : `\n${failures} check(s) failed.`);

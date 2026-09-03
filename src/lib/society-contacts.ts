@@ -109,6 +109,7 @@ const CONTACTS = new Map<string, string>([
   ["971502933203", "Nehal Kamal khan"],
   ["917263816410", "Nihal Imtyaz"],
   ["918806507664", "Nisar khadim Pewe"],
+  ["97455884597", "Nisar PSWS Qatar"],
   ["971508744346", "Qayyum bhai"],
   ["971505789896", "Rafique dubai"],
   ["971504766096", "Rahim Hanif khan"],
