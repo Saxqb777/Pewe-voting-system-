@@ -704,6 +704,26 @@ function nameKey(name: string): string {
 }
 
 /**
+ * True when two names are one man written two ways.
+ *
+ * The society's list has him as "Iqbal H Khan" and he types "Iqbal Khan", or
+ * the list says "A Qader Khan" and he adds where he lives. Every word of the
+ * shorter name has to appear in the longer one, and the shorter needs at
+ * least two words, so "Khan" alone never sweeps up half the village.
+ */
+function samePerson(a: string, b: string): boolean {
+  if (a === "" || b === "") return false;
+  if (a === b) return true;
+
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+  const words = short.split(" ");
+  if (words.length < 2) return false;
+
+  const inLong = new Set(long.split(" "));
+  return words.every((w) => inLong.has(w));
+}
+
+/**
  * The society's list split into the men who have registered and the men who
  * have not.
  *
@@ -721,8 +741,15 @@ export async function splitTheList(): Promise<{
     sql<{ phone: string; known_name: string }[]>`
       SELECT phone, known_name FROM allowed_numbers
     `,
-    sql<{ name: string; phone: string | null; registered_at: Date | null }[]>`
-      SELECT name, phone, registered_at FROM voters
+    sql<
+      {
+        name: string;
+        phone: string | null;
+        registered_at: Date | null;
+        status: string;
+      }[]
+    >`
+      SELECT name, phone, registered_at, status FROM voters
     `,
   ]);
 
@@ -734,21 +761,19 @@ export async function splitTheList(): Promise<{
 
   // Every name already accounted for: the name each man typed himself, and
   // the name the society's list carries against a number he registered on.
-  const accountedFor = new Set<string>();
+  const accountedFor: string[] = [];
   for (const v of voters) {
     const key = nameKey(v.name);
-    if (key !== "") accountedFor.add(key);
+    if (key !== "") accountedFor.push(key);
   }
   for (const e of entries) {
     const key = nameKey(e.name);
-    if (e.voter && key !== "") accountedFor.add(key);
+    if (e.voter && key !== "") accountedFor.push(key);
   }
 
-  const row = (e: (typeof entries)[number]): RegisteredRow => ({
-    name: e.name,
-    phone: displayPhone(e.phone),
-    joined: e.voter?.registered_at
-      ? e.voter.registered_at.toLocaleString("en-GB", {
+  const stamp = (at: Date | null) =>
+    at
+      ? at.toLocaleString("en-GB", {
           timeZone: "Asia/Kolkata",
           day: "numeric",
           month: "short",
@@ -756,8 +781,7 @@ export async function splitTheList(): Promise<{
           minute: "2-digit",
           hour12: false,
         })
-      : "",
-  });
+      : "";
 
   const byName = (a: RegisteredRow, b: RegisteredRow) =>
     a.name.localeCompare(b.name) || a.phone.localeCompare(b.phone);
@@ -765,40 +789,35 @@ export async function splitTheList(): Promise<{
   const isIn = (e: (typeof entries)[number]) => {
     if (e.voter) return true;
     const key = nameKey(e.name);
-    return key !== "" && accountedFor.has(key);
+    return accountedFor.some((known) => samePerson(key, known));
   };
 
-  // Everybody who registered from a number the society never had. They are on
-  // no entry above, so without this they appear on neither list, and a man who
-  // did register looks in the file the group was sent and cannot find himself.
-  const onTheList = new Set(
-    entries.filter(isIn).map((e) => nameKey(e.name)).filter((k) => k !== ""),
-  );
-  const offList = voters
-    .filter((v) => !entries.some((e) => e.voter === v))
-    // Unless the society's list already names him, in which case that entry
-    // stands for him and carries the number the society has for him.
-    .filter((v) => !onTheList.has(nameKey(v.name)))
+  // A man is named on the registered side by the name and the number he put
+  // in himself, not by whatever the society's old contact list called him.
+  // The society's own spelling is for the men who have not registered, where
+  // there is nothing else to go on.
+  // Approved only, so this count is the same one every other panel shows.
+  // A man still waiting on the admin is not chased either: his number is
+  // matched above, he is simply not on the roster yet.
+  const registered = voters
+    .filter((v) => v.status === "approved")
     .map((v) => ({
       name: v.name,
       phone: v.phone ? displayPhone(v.phone) : "",
-      joined: v.registered_at
-        ? v.registered_at.toLocaleString("en-GB", {
-            timeZone: "Asia/Kolkata",
-            day: "numeric",
-            month: "short",
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          })
-        : "",
-    }));
+      joined: stamp(v.registered_at),
+    }))
+    .sort(byName);
 
   return {
-    registered: [...entries.filter(isIn).map(row), ...offList].sort(byName),
-    missing: entries.filter((e) => !isIn(e)).map(row).sort(byName),
+    registered,
+    missing: entries.filter((e) => !isIn(e)).map((e) => ({
+      name: e.name,
+      phone: displayPhone(e.phone),
+      joined: "",
+    })).sort(byName),
   };
 }
+
 
 /**
  * Who the society is still waiting on.
