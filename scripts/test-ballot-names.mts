@@ -12,6 +12,7 @@
  * only. It refuses to run when the election is live.
  */
 import { sql, ensureSchema } from "../src/lib/db.ts";
+import { getCandidates } from "../src/lib/candidates.ts";
 
 let failures = 0;
 function check(label: string, ok: boolean, detail = "") {
@@ -74,6 +75,39 @@ async function main() {
       names.join(", "),
     );
   }
+
+  // The ballot itself, built the way the vote page builds it.
+  const ballotRows = await getCandidates();
+  check(
+    "the ballot carries only the men who registered",
+    ballotRows.length === 2,
+    ballotRows.map((c) => c.name).join(", "),
+  );
+  for (const contact of CONTACT_ONLY) {
+    check(
+      `the ballot does not show the contact list name "${contact}"`,
+      !ballotRows.some((c) => c.name === contact),
+      ballotRows.map((c) => c.name).join(", "),
+    );
+  }
+  check(
+    "the number under each name is the one he registered with",
+    ballotRows.some((c) => c.name === "ABDUL GAFFAR SIRGUROH" && c.phone.includes("7887975151")) &&
+      ballotRows.some((c) => c.name === "KAUSER HASAN KHAN" && c.phone.includes("8976218191")),
+    ballotRows.map((c) => `${c.name}/${c.phone}`).join(", "),
+  );
+
+  // The contact list holds a different number for the same man. It must not
+  // be the one printed under his name.
+  await sql`
+    UPDATE allowed_numbers SET phone = '971553232677' WHERE known_name = 'Kauser Dubai'
+  `;
+  const again = await getCandidates();
+  check(
+    "and never a number the contact list holds instead",
+    !again.some((c) => c.phone.replace(/\D/g, "") === "971553232677"),
+    again.map((c) => c.phone).join(", "),
+  );
 
   check(
     "a man is on the ballot under the name he typed",
