@@ -602,12 +602,6 @@ export type PublicStatus = {
    * number in the one form a phone will actually ring.
    */
   people: { name: string; phone: string; dial: string; joined: string }[];
-  /**
-   * The men on the society's list who have not registered yet, so the group
-   * can chase them without anybody asking the admin for a file. Same shape as
-   * `people`, with no arrival time to show.
-   */
-  missing: { name: string; phone: string; dial: string }[];
   /** Every figure the admin's report carries, so the page can show its own. */
   report: Report;
 };
@@ -636,7 +630,7 @@ export async function getPublicStatus(): Promise<PublicStatus> {
     ORDER BY registered_at NULLS LAST, name
   `;
 
-  const [missing, report] = await Promise.all([getNotRegisteredList(), getReport()]);
+  const report = await getReport();
 
   const opening = settings.opensAt ?? config.electionOpensAt;
   const registered = counts?.registered ?? 0;
@@ -670,11 +664,6 @@ export async function getPublicStatus(): Promise<PublicStatus> {
             hour12: false,
           })
         : "",
-    })),
-    missing: missing.map((m) => ({
-      name: m.name,
-      phone: m.phone,
-      dial: `+${normalisePhone(m.phone)}`,
     })),
     report,
   };

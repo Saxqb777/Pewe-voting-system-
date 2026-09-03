@@ -17,9 +17,10 @@ export const metadata = {
 /**
  * The page the group pins.
  *
- * Anybody may open it and nobody has to ask the admin for a file. It carries
- * names, numbers and counts and nothing else: no voting codes, and not one
- * word about how a single person voted.
+ * Anybody may open it and nobody has to ask the admin for a file. It names
+ * the men who have registered and nobody else: a man who has not registered
+ * yet is chased privately, not named on a page the whole village can open.
+ * No voting codes, and not one word about how a single person voted.
  */
 
 /**
@@ -198,41 +199,6 @@ export default async function StatusPage() {
           </ul>
         ) : null}
       </section>
-
-      {status.missing.length > 0 ? (
-        <section className="mt-8">
-          <h2 className="text-base font-bold text-ink">
-            {s.missingHeading(status.missing.length)}
-          </h2>
-          <p className="mt-1 text-sm text-ink-soft">{s.missingHeadingHi}</p>
-          <p className="mt-2 text-sm text-ink-soft">
-            {s.missingHelp}
-            <span className="block">{s.missingHelpHi}</span>
-          </p>
-
-          <ul className="mt-3 space-y-1">
-            {status.missing.map((person, i) => (
-              <li
-                key={`${person.dial}-${i}`}
-                className="flex flex-wrap items-baseline justify-between gap-2 rounded-lg bg-card px-3 py-2"
-              >
-                <span className="min-w-0">
-                  <span className="block text-base text-ink">
-                    <span className="mr-2 text-sm text-ink-faint tabular-nums">{i + 1}</span>
-                    {person.name || s.missingNoName}
-                  </span>
-                  <a
-                    href={`tel:${person.dial}`}
-                    className="ml-6 mt-0.5 inline-flex min-h-8 items-center font-mono text-sm text-brand underline"
-                  >
-                    {person.phone}
-                  </a>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
 
       {/* The same figures the admin reads, so nobody has to ask him for them. */}
       <section className="mt-10">

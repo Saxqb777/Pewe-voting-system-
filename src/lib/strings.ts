@@ -161,11 +161,6 @@ export const strings = {
     statsAgainstHi: (n: number) =>
       `Neeche ke sabhi percentage un ${n} logon ke muqable nikale gaye hain jinke aane ki ummeed hai.`,
     statsOf: (percent: number, outOf: string) => `${percent}% of ${outOf}`,
-    missingHeading: (n: number) => `The ${n} still to register`,
-    missingHeadingHi: "Jinhone abhi tak register nahi kiya",
-    missingHelp: "Tap any number to call and remind him.",
-    missingHelpHi: "Kisi bhi number par tap karke call kijiye aur yaad dilaiye.",
-    missingNoName: "No name on file",
     updated: (when: string) => `Last checked ${when}`,
     privacy: "No voting codes are on this page, and nothing at all about how anybody voted.",
     privacyHi: "Is page par koi voting code nahi hai, aur kisi ke vote ke baare mein kuch bhi nahi.",
