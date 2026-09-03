@@ -7,7 +7,7 @@ import {
   VOTER_FAILED_ATTEMPT_FLAG_THRESHOLD,
 } from "./config";
 import { describeGap, describeGapHi } from "./countdown";
-import { displayPhone } from "./phone";
+import { displayPhone, normalisePhone } from "./phone";
 import { strings } from "./strings";
 
 /** A moment in the hour the village agreed on, which is India time. */
@@ -585,8 +585,13 @@ export type PublicStatus = {
   rosterLocked: boolean;
   votingOpen: boolean;
   votingEnded: boolean;
-  /** Name, number and the moment each one arrived. Never a code. */
-  people: { name: string; phone: string; joined: string }[];
+  /**
+   * Name, number and the moment each one arrived. Never a code.
+   *
+   * `phone` is the number as its owner would recognise it, `dial` is the same
+   * number in the one form a phone will actually ring.
+   */
+  people: { name: string; phone: string; dial: string; joined: string }[];
 };
 
 /**
@@ -601,11 +606,8 @@ export async function getPublicStatus(): Promise<PublicStatus> {
   await ensureSchema();
   const settings = await getSettings();
 
-  const [counts] = await sql<{ registered: number; still: number }[]>`
-    SELECT
-      (SELECT COUNT(*)::int FROM voters WHERE status = 'approved') AS registered,
-      (SELECT COUNT(*)::int FROM allowed_numbers a
-        WHERE NOT EXISTS (SELECT 1 FROM voters v WHERE v.phone = a.phone)) AS still
+  const [counts] = await sql<{ registered: number }[]>`
+    SELECT COUNT(*)::int AS registered FROM voters WHERE status = 'approved'
   `;
 
   const rows = await sql<
@@ -617,12 +619,18 @@ export async function getPublicStatus(): Promise<PublicStatus> {
   `;
 
   const opening = settings.opensAt ?? config.electionOpensAt;
+  const registered = counts?.registered ?? 0;
 
   return {
     takenAt: new Date().toISOString(),
     expected: config.expectedTurnout,
-    registered: counts?.registered ?? 0,
-    stillToCome: counts?.still ?? 0,
+    registered: registered,
+    // Counted against the same total the headline is out of, so the two
+    // figures add up to it. Counting the society's own list instead gives a
+    // number that looks wrong on a page saying "of about 150", because
+    // anybody who registered from a number not on that list is missing from
+    // one side and present on the other.
+    stillToCome: Math.max(0, config.expectedTurnout - registered),
     opensAt: opening.getTime() > Date.now() ? opening.toISOString() : null,
     registrationOpen: settings.registrationOpen,
     rosterLocked: settings.rosterLocked,
@@ -631,6 +639,7 @@ export async function getPublicStatus(): Promise<PublicStatus> {
     people: rows.map((r) => ({
       name: r.name,
       phone: r.phone ? displayPhone(r.phone) : "",
+      dial: r.phone ? `+${normalisePhone(r.phone)}` : "",
       joined: r.registered_at
         ? r.registered_at.toLocaleString("en-GB", {
             timeZone: "Asia/Kolkata",
@@ -643,6 +652,27 @@ export async function getPublicStatus(): Promise<PublicStatus> {
         : "",
     })),
   };
+}
+
+/**
+ * Who the society is still waiting on.
+ *
+ * Every number the admin loaded that has not registered yet, with whatever
+ * name the list carried for it. This is the chasing list, so the number
+ * matters more than the name and both are on it.
+ */
+export async function getNotRegisteredList(): Promise<RegisteredRow[]> {
+  await ensureSchema();
+  const rows = await sql<{ phone: string; known_name: string }[]>`
+    SELECT phone, known_name FROM allowed_numbers a
+    WHERE NOT EXISTS (SELECT 1 FROM voters v WHERE v.phone = a.phone)
+    ORDER BY known_name, phone
+  `;
+  return rows.map((r) => ({
+    name: r.known_name || "",
+    phone: displayPhone(r.phone),
+    joined: "",
+  }));
 }
 
 // --------------------------------------------------------------------------

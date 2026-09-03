@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Button, Notice, Section } from "./ui";
 import { strings } from "@/lib/strings";
-import { displayPhone } from "@/lib/phone";
+import { displayPhone, normalisePhone } from "@/lib/phone";
 import { REGISTRATION_PHRASE } from "@/lib/phrases";
 import type { Dashboard } from "@/lib/admin-data";
 import type { ActionResult } from "@/actions/admin";
@@ -186,9 +186,7 @@ export function ElectionFlow({
                         className="flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 border-warn bg-warn-soft p-3">
                         <span>
                           <span className="block text-base font-semibold text-ink">{p.name}</span>
-                          <span className="block font-mono text-sm text-ink-soft">
-                            {displayPhone(p.phone)}
-                          </span>
+                          <Dial phone={p.phone} />
                         </span>
                         <span className="flex gap-2">
                           <Button tone="primary" disabled={pending}
@@ -221,9 +219,7 @@ export function ElectionFlow({
                       className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-paper px-3 py-2">
                       <span className="min-w-0">
                         <span className="block text-base text-ink">{p.name}</span>
-                        <span className="block font-mono text-sm text-ink-soft">
-                          {displayPhone(p.phone)}
-                        </span>
+                        <Dial phone={p.phone} />
                       </span>
                       <span className="flex flex-wrap items-center gap-2">
                         <span className="font-mono text-sm font-bold tracking-widest text-brand">
@@ -341,6 +337,26 @@ export function ElectionFlow({
   );
 }
 
+/**
+ * A number the admin can ring by pressing it.
+ *
+ * Chasing people is done from these lists, and copying a number out by hand
+ * to dial it is the slowest part of a job already done one man at a time.
+ */
+function Dial({ phone, inline }: { phone: string; inline?: boolean }) {
+  if (!phone) return null;
+  return (
+    <a
+      href={`tel:+${normalisePhone(phone)}`}
+      className={`font-mono text-sm text-brand underline ${
+        inline ? "" : "mt-0.5 inline-flex min-h-8 items-center"
+      }`}
+    >
+      {displayPhone(phone)}
+    </a>
+  );
+}
+
 function People({
   title,
   help,
@@ -360,7 +376,7 @@ function People({
             className="flex flex-wrap items-baseline justify-between gap-2 rounded-lg bg-paper px-3 py-2">
             <span className="text-base text-ink">{r.name}</span>
             <span className="flex items-baseline gap-3 font-mono text-sm">
-              <span className="text-ink-soft">{displayPhone(r.phone)}</span>
+              <Dial phone={r.phone} inline />
               {r.code ? (
                 <span className="font-bold tracking-widest text-brand">{r.code}</span>
               ) : null}

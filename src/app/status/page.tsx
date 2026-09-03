@@ -131,9 +131,14 @@ export default async function StatusPage() {
                     {person.name}
                   </span>
                   {person.phone ? (
-                    <span className="ml-6 block font-mono text-sm text-ink-soft">
+                    // Tappable, because the reason anybody looks a number up
+                    // on this page is to call the man it belongs to.
+                    <a
+                      href={`tel:${person.dial}`}
+                      className="ml-6 mt-0.5 inline-flex min-h-8 items-center font-mono text-sm text-brand underline"
+                    >
                       {person.phone}
-                    </span>
+                    </a>
                   ) : null}
                 </span>
                 <span className="text-sm tabular-nums text-ink-soft">{person.joined}</span>

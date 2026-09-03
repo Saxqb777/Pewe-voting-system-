@@ -170,24 +170,37 @@ async function letterhead(ctx: Ctx): Promise<void> {
 export async function namesPdf(
   rows: { name: string; phone: string; joined: string }[],
   when: string,
+  /**
+   * Which list this is. The registered one carries the moment each person
+   * arrived; the one still to come has no such column and says so instead.
+   */
+  kind: "registered" | "missing" = "registered",
 ): Promise<Uint8Array> {
   const a = strings.admin;
+  const missing = kind === "missing";
+  const say = {
+    heading: missing ? a.missingHeading : a.namesHeading,
+    headingHi: missing ? a.missingHeadingHi : a.namesHeadingHi,
+    count: missing ? a.missingCount(rows.length) : a.namesCount(rows.length),
+    privacy: missing ? a.missingPrivacy : a.namesPrivacy,
+    privacyHi: missing ? a.missingPrivacyHi : a.namesPrivacyHi,
+  };
   const doc = await PDFDocument.create();
   const regular = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const ctx: Ctx = { doc, page: doc.addPage(A4), y: A4[1] - MARGIN, regular, bold };
 
-  doc.setTitle(a.namesHeading);
+  doc.setTitle(say.heading);
   doc.setAuthor(strings.common.orgName);
 
   await letterhead(ctx);
 
   ctx.y -= 26;
-  text(ctx, a.namesHeading, { size: 18, font: bold });
+  text(ctx, say.heading, { size: 18, font: bold });
   ctx.y -= 16;
-  text(ctx, a.namesHeadingHi, { size: 11, color: SOFT });
+  text(ctx, say.headingHi, { size: 11, color: SOFT });
   ctx.y -= 16;
-  text(ctx, a.namesCount(rows.length), { size: 11, font: bold, color: BRAND });
+  text(ctx, say.count, { size: 11, font: bold, color: missing ? rgb(0.66, 0.42, 0.03) : BRAND });
   ctx.y -= 14;
   text(ctx, a.namesTaken(when), { size: 9, color: SOFT });
 
@@ -203,7 +216,9 @@ export async function namesPdf(
     ctx.y -= 22;
     text(ctx, a.namesColName, { size: 8.5, font: bold, color: SOFT, x: NAME });
     text(ctx, a.namesColPhone, { size: 8.5, font: bold, color: SOFT, x: PHONE });
-    rightText(ctx, a.namesColJoined, JOINED, { size: 8.5, font: bold, color: SOFT });
+    if (!missing) {
+      rightText(ctx, a.namesColJoined, JOINED, { size: 8.5, font: bold, color: SOFT });
+    }
     ctx.y -= 6;
     ctx.page.drawLine({
       start: { x: MARGIN, y: ctx.y },
@@ -225,8 +240,8 @@ export async function namesPdf(
     ctx.page.drawText(String(i + 1), {
       x: NUM, y: ctx.y, size: 9, font: regular, color: SOFT,
     });
-    ctx.page.drawText(row.name.slice(0, 40), {
-      x: NAME, y: ctx.y, size: 10, font: regular, color: INK,
+    ctx.page.drawText(row.name.slice(0, 40) || a.namesNoName, {
+      x: NAME, y: ctx.y, size: 10, font: regular, color: row.name ? INK : SOFT,
     });
     ctx.page.drawText(row.phone, {
       x: PHONE, y: ctx.y, size: 10, font: regular, color: INK,
@@ -250,9 +265,9 @@ export async function namesPdf(
     color: RULE,
   });
   ctx.y -= 14;
-  text(ctx, a.namesPrivacy, { size: 9, color: SOFT });
+  text(ctx, say.privacy, { size: 9, color: SOFT });
   ctx.y -= 12;
-  text(ctx, a.namesPrivacyHi, { size: 9, color: SOFT });
+  text(ctx, say.privacyHi, { size: 9, color: SOFT });
 
   return doc.save();
 }

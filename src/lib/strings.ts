@@ -592,6 +592,17 @@ export const strings = {
     statusLinkHelp:
       "Send this link once and let them pin it. It shows who has registered and updates on its own, so nobody has to ask you for a file again. Names only, no numbers and no codes.",
     statusLinkOpen: "Open it",
+    missingHeading: "Not yet registered",
+    missingHeadingHi: "Jinhone abhi tak register nahi kiya",
+    missingCount: (n: number) => `${n} still to register`,
+    missingPrivacy:
+      "Everybody here is on the society's list and has not registered yet. Please call them.",
+    missingPrivacyHi:
+      "Yeh sab log society ki list mein hain aur inhone abhi tak register nahi kiya. Inhe call kijiye.",
+    namesNoName: "No name on file",
+    missingDownload: "Download who has not registered",
+    missingDownloadHelp:
+      "The numbers on your list that have not come in yet, so you know who to call. For you, not for the group.",
     namesDownload: "Download the list of names to share",
     namesDownloadHelp:
       "Safe to send in the group. Names, numbers and when each person registered, with no codes on it.",
