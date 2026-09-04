@@ -53,6 +53,29 @@ export async function getPending(): Promise<PendingVoter[]> {
   return rows.map((r) => ({ voterId: r.voter_id, name: r.name }));
 }
 
+/**
+ * Who is still holding a code on voting day.
+ *
+ * The register knows a man has voted; it has never known what he chose, so
+ * asking it who is left says nothing about anybody's ballot. The code itself
+ * is deliberately not here: this list gets read out over the phone and put
+ * in front of whoever is doing the ringing, and a code on it is a code
+ * anybody in that room could use.
+ */
+export async function getNotVotedList(): Promise<RegisteredRow[]> {
+  await ensureSchema();
+  const rows = await sql<{ name: string; phone: string | null }[]>`
+    SELECT name, phone FROM voters
+    WHERE status = 'approved' AND NOT has_voted
+    ORDER BY LOWER(name), voter_id
+  `;
+  return rows.map((r) => ({
+    name: r.name,
+    phone: r.phone ? displayPhone(r.phone) : "",
+    joined: "",
+  }));
+}
+
 export type Flags = {
   sharedDevices: { fingerprint: string; voters: PendingVoter[] }[];
   sharedIps: { ip: string; voters: PendingVoter[] }[];

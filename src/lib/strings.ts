@@ -741,6 +741,16 @@ export const strings = {
     bothDownload: "Download both lists to share",
     bothDownloadHelp:
       "Registered and still to register in one file, so a man can find his own name and see he is done. Safe to send in the group.",
+    notVotedHeading: "Still to vote",
+    notVotedHeadingHi: "Jinhone abhi tak vote nahi diya",
+    notVotedCount: (n: number) => `${n} still to vote`,
+    notVotedPrivacy:
+      "Everybody here is on the voter list and has not voted yet. Please call them. No voting codes are on this page.",
+    notVotedPrivacyHi:
+      "Yeh sab log voter list mein hain aur inhone abhi tak vote nahi diya. Inhe call kijiye. Is page par koi code nahi hai.",
+    notVotedDownload: "Download who has not voted",
+    notVotedDownloadHelp:
+      "Names and numbers of everyone still holding a code, so you know who to ring. For you, not for the group, and no codes on it.",
     missingDownload: "Download who has not registered",
     missingDownloadHelp:
       "The numbers on your list that have not come in yet, so you know who to call. For you, not for the group.",

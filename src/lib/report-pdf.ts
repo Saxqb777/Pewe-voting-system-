@@ -225,17 +225,34 @@ export async function namesPdf(
    * Which list this is. The registered one carries the moment each person
    * arrived; the one still to come has no such column and says so instead.
    */
-  kind: "registered" | "missing" = "registered",
+  kind: "registered" | "missing" | "notvoted" = "registered",
 ): Promise<Uint8Array> {
   const a = strings.admin;
-  const missing = kind === "missing";
-  const say = {
-    heading: missing ? a.missingHeading : a.namesHeading,
-    headingHi: missing ? a.missingHeadingHi : a.namesHeadingHi,
-    count: missing ? a.missingCount(rows.length) : a.namesCount(rows.length),
-    privacy: missing ? a.missingPrivacy : a.namesPrivacy,
-    privacyHi: missing ? a.missingPrivacyHi : a.namesPrivacyHi,
-  };
+  const chasing = kind !== "registered";
+  const say =
+    kind === "notvoted"
+      ? {
+          heading: a.notVotedHeading,
+          headingHi: a.notVotedHeadingHi,
+          count: a.notVotedCount(rows.length),
+          privacy: a.notVotedPrivacy,
+          privacyHi: a.notVotedPrivacyHi,
+        }
+      : kind === "missing"
+        ? {
+            heading: a.missingHeading,
+            headingHi: a.missingHeadingHi,
+            count: a.missingCount(rows.length),
+            privacy: a.missingPrivacy,
+            privacyHi: a.missingPrivacyHi,
+          }
+        : {
+            heading: a.namesHeading,
+            headingHi: a.namesHeadingHi,
+            count: a.namesCount(rows.length),
+            privacy: a.namesPrivacy,
+            privacyHi: a.namesPrivacyHi,
+          };
   const doc = await PDFDocument.create();
   const regular = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
@@ -251,7 +268,7 @@ export async function namesPdf(
   ctx.y -= 16;
   text(ctx, say.headingHi, { size: 11, color: SOFT });
   ctx.y -= 16;
-  text(ctx, say.count, { size: 11, font: bold, color: missing ? rgb(0.66, 0.42, 0.03) : BRAND });
+  text(ctx, say.count, { size: 11, font: bold, color: chasing ? rgb(0.66, 0.42, 0.03) : BRAND });
   ctx.y -= 14;
   text(ctx, a.namesTaken(when), { size: 9, color: SOFT });
   ctx.y -= 12;
@@ -269,7 +286,7 @@ export async function namesPdf(
     ctx.y -= 22;
     text(ctx, a.namesColName, { size: 8.5, font: bold, color: SOFT, x: NAME });
     text(ctx, a.namesColPhone, { size: 8.5, font: bold, color: SOFT, x: PHONE });
-    if (!missing) {
+    if (!chasing) {
       rightText(ctx, a.namesColJoined, JOINED, { size: 8.5, font: bold, color: SOFT });
     }
     ctx.y -= 6;
