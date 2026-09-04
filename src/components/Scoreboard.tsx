@@ -20,9 +20,13 @@ export function Scoreboard({ chase }: { chase: Chase }) {
           {s.scoreHeading}
           <span className="ml-2 font-normal opacity-80">{s.scoreHeadingHi}</span>
         </h2>
-        <span className="text-xs tabular-nums opacity-80">
-          {chase.openEnded ? s.scoreNoClock : s.scoreLeft(chase.hoursLeft)}
-        </span>
+        {/* With no deadline the corner stays empty. Saying so out loud tells
+            a man he has all the time in the world, and he takes it. */}
+        {chase.openEnded ? null : (
+          <span className="text-xs tabular-nums opacity-80">
+            {s.scoreLeft(chase.hoursLeft)}
+          </span>
+        )}
       </div>
 
       {/* The score itself, the way a scoreboard says it. */}
@@ -66,6 +70,7 @@ export function Scoreboard({ chase }: { chase: Chase }) {
             labelHi={s.scoreStillOutHi}
             value={String(chase.needed)}
             note={s.scoreOpenNote}
+            noteHi={s.scoreOpenNoteHi}
           />
         ) : (
           <Cell
@@ -95,12 +100,14 @@ function Cell({
   labelHi,
   value,
   note,
+  noteHi,
   strong,
 }: {
   label: string;
   labelHi: string;
   value: string;
   note: string;
+  noteHi?: string;
   strong?: boolean;
 }) {
   return (
@@ -116,7 +123,10 @@ function Cell({
       >
         {value}
       </dd>
-      <p className="text-xs opacity-75">{note}</p>
+      <p className="text-xs opacity-75">
+        {note}
+        {noteHi ? <span className="block">{noteHi}</span> : null}
+      </p>
     </div>
   );
 }

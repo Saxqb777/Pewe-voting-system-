@@ -168,11 +168,13 @@ export const strings = {
     scorePerHourHi: (n: number) => `${n} har ghante`,
     scoreOnPar: "100 is on par",
     scoreOnParHi: "100 matlab barabar",
-    scoreNoClock: "No closing time",
+
     scoreStillOut: "Still to vote",
     scoreStillOutHi: "Abhi baaki",
-    scoreOpenNote: "Voting stays open until the society closes it.",
-    scoreOpenNoteHi: "Voting tab tak khuli rahegi jab tak society ise band nahi karti.",
+    // Deliberately not an announcement that there is no deadline. A man who
+    // reads that he has all the time in the world takes it.
+    scoreOpenNote: "Please vote now",
+    scoreOpenNoteHi: "Abhi vote kijiye",
     scoreLeft: (n: number) => `${n} ${n === 1 ? "hour" : "hours"} left`,
     scoreLeftHi: (n: number) => `${n} ${n === 1 ? "ghanta" : "ghante"} baaki`,
     verdictCruising: "Cruising. Sixes all over the ground.",
@@ -298,11 +300,13 @@ export const strings = {
     scorePerHourHi: (n: number) => `${n} har ghante`,
     scoreOnPar: "100 is on par",
     scoreOnParHi: "100 matlab barabar",
-    scoreNoClock: "No closing time",
+
     scoreStillOut: "Still to vote",
     scoreStillOutHi: "Abhi baaki",
-    scoreOpenNote: "Voting stays open until the society closes it.",
-    scoreOpenNoteHi: "Voting tab tak khuli rahegi jab tak society ise band nahi karti.",
+    // Deliberately not an announcement that there is no deadline. A man who
+    // reads that he has all the time in the world takes it.
+    scoreOpenNote: "Please vote now",
+    scoreOpenNoteHi: "Abhi vote kijiye",
     scoreLeft: (n: number) => `${n} ${n === 1 ? "hour" : "hours"} left`,
     scoreLeftHi: (n: number) => `${n} ${n === 1 ? "ghanta" : "ghante"} baaki`,
     verdictCruising: "Cruising. Sixes all over the ground.",
