@@ -607,6 +607,11 @@ export type PublicStatus = {
   /** How many are on the roster, and how many of them have voted. */
   roster: number;
   voted: number;
+  /** When the ballot closes, so the page can count down to it. */
+  closesAt: string | null;
+  /** The chase, read the way a run rate is read. Empty before voting. */
+  pace: string;
+  paceHi: string;
 };
 
 /**
@@ -647,6 +652,44 @@ export async function getPublicStatus(): Promise<PublicStatus> {
   const opening = settings.opensAt ?? config.electionOpensAt;
   const registered = counts?.registered ?? 0;
 
+  // How the day is going, said the way a required run rate is said: what is
+  // left to get, over the time there is left to get it, beside what is
+  // actually arriving.
+  const roster = turnout?.roster ?? 0;
+  const voted = turnout?.voted ?? 0;
+  const closing = settings.closesAt ?? config.electionClosesAt;
+  const opened = settings.startedAt ?? settings.opensAt ?? config.electionOpensAt;
+
+  let pace = "";
+  let paceHi = "";
+  if (settings.votingOpen) {
+    const stillToVote = Math.max(0, roster - voted);
+    if (stillToVote === 0) {
+      pace = strings.status.votingPaceDone;
+      paceHi = strings.status.votingPaceDoneHi;
+    } else {
+      const left = Math.max(0, closing.getTime() - Date.now());
+      // An hour at minimum either side, so the first minutes of the day do
+      // not read as a thousand an hour and the last do not read as infinity.
+      const hoursLeft = Math.max(1, left / 3600e3);
+      const hoursOpen = Math.max(1, (Date.now() - opened.getTime()) / 3600e3);
+      const need = Math.ceil(stillToVote / hoursLeft);
+      const coming = Math.round(voted / hoursOpen);
+      pace = strings.status.votingPace(
+        stillToVote,
+        describeGap(left),
+        strings.status.perHour(need),
+        strings.status.perHour(coming),
+      );
+      paceHi = strings.status.votingPaceHi(
+        stillToVote,
+        describeGapHi(left),
+        strings.status.perHourHi(need),
+        strings.status.perHourHi(coming),
+      );
+    }
+  }
+
   return {
     takenAt: new Date().toISOString(),
     expected: config.expectedTurnout,
@@ -678,8 +721,11 @@ export async function getPublicStatus(): Promise<PublicStatus> {
         : "",
     })),
     report,
-    roster: turnout?.roster ?? 0,
-    voted: turnout?.voted ?? 0,
+    roster,
+    voted,
+    closesAt: settings.votingOpen ? closing.toISOString() : null,
+    pace,
+    paceHi,
   };
 }
 

@@ -130,6 +130,17 @@ export const strings = {
     titleHi: "Kaun kaun register ho chuka hai",
     lead: "This page updates on its own. Open it any time.",
     leadHi: "Yeh page apne aap update hota hai. Kabhi bhi khol kar dekh sakte hain.",
+    closesIn: "Voting closes in",
+    closesNote: "After this nobody can vote.",
+    closesNoteHi: "Iske baad koi vote nahi de sakta.",
+    votingPace: (need: number, left: string, rate: string, coming: string) =>
+      `${need} more to vote in ${left}. That is ${rate}, and ${coming} are voting.`,
+    votingPaceHi: (need: number, left: string, rate: string, coming: string) =>
+      `${left} mein ${need} aur vote dene hain. Yaani ${rate}, aur abhi ${coming} vote de rahe hain.`,
+    votingPaceDone: "Everybody on the voter list has voted.",
+    votingPaceDoneHi: "Voter list ke sabhi log vote de chuke hain.",
+    perHour: (n: number) => `${n} an hour`,
+    perHourHi: (n: number) => `${n} har ghante`,
     votingTitle: "Voting is under way",
     votingTitleHi: "Voting chal rahi hai",
     rosterHeading: (n: number) => `The ${n} on the voter list`,
