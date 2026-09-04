@@ -177,6 +177,10 @@ export const strings = {
       `Every share below is worked out against the ${n} people the society expects to take part.`,
     statsAgainstHi: (n: number) =>
       `Neeche ke sabhi percentage un ${n} logon ke muqable nikale gaye hain jinke aane ki ummeed hai.`,
+    statsAgainstVoting: (n: number) =>
+      `Every share below is worked out against the ${n} people on the voter list.`,
+    statsAgainstVotingHi: (n: number) =>
+      `Neeche ke sabhi percentage voter list ke un ${n} logon ke muqable nikale gaye hain.`,
     statsOf: (percent: number, outOf: string) => `${percent}% of ${outOf}`,
     updated: (when: string) => `Last checked ${when}`,
     privacy: "No voting codes are on this page, and nothing at all about how anybody voted.",

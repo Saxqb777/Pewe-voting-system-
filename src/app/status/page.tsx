@@ -245,8 +245,14 @@ export default async function StatusPage() {
         <h2 className="text-base font-bold text-ink">{s.statsHeading}</h2>
         <p className="mt-1 text-sm text-ink-soft">{s.statsHeadingHi}</p>
         <p className="mt-2 text-sm text-ink-soft">
-          {s.statsAgainst(status.report.expected)}
-          <span className="mt-1 block">{s.statsAgainstHi(status.report.expected)}</span>
+          {voting
+            ? s.statsAgainstVoting(status.roster)
+            : s.statsAgainst(status.report.expected)}
+          <span className="mt-1 block">
+            {voting
+              ? s.statsAgainstVotingHi(status.roster)
+              : s.statsAgainstHi(status.report.expected)}
+          </span>
         </p>
 
         {status.report.pace ? (

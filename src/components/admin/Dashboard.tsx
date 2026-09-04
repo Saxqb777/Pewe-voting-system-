@@ -211,6 +211,10 @@ function ReportBlock({
   title: string;
   rows: DashboardData["report"]["registration"];
 }) {
+  // A block with nothing in it is a heading over a gap. Once voting starts
+  // the registration figures are emptied rather than frozen, so this is how
+  // they leave the page.
+  if (rows.length === 0) return null;
   return (
     <div className="mt-5">
       <h3 className="text-sm font-bold uppercase tracking-wide text-ink-soft">

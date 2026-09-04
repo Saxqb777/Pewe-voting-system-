@@ -1026,6 +1026,16 @@ export async function getReport(): Promise<Report> {
     }
   }
 
+  // Once the ballot is open, the chase is over. Everything measured against
+  // the registration target is a figure about a race that has finished, and
+  // reading it beside a live turnout only confuses the man holding the phone.
+  const chasing = !settings.votingOpen && !settings.votingEnded;
+  if (!chasing) {
+    target.length = 0;
+    pace = "";
+    paceHi = "";
+  }
+
   const countries = await sql<{ country: string | null; n: number }[]>`
     SELECT country, COUNT(*)::int AS n FROM voters
     GROUP BY country ORDER BY COUNT(*) DESC, country NULLS LAST
@@ -1039,7 +1049,7 @@ export async function getReport(): Promise<Report> {
     pace,
     paceHi,
     target,
-    registration: [
+    registration: !chasing ? [] : [
       line("Expected to take part", hi.lines.expectedToTakePart, expected, null),
       line("Numbers allowed to register", hi.lines.allowed, counts.allowed, ofExpected),
       line("Registered and on the roster", hi.lines.onRoster, onRoster, ofExpected),
