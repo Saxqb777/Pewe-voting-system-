@@ -755,6 +755,8 @@ export const strings = {
     statusLinkHelp:
       "Send this link once and let them pin it. It shows who has registered and updates on its own, so nobody has to ask you for a file again. Names and numbers, and no codes.",
     statusLinkOpen: "Open it",
+    linkCopy: "Copy the link",
+    linkCopied: "Copied",
     chaseLinkHeading: "The link for whoever is making the calls",
     chaseLinkHelp:
       "Everybody still to vote, with their number, updating on its own. Send it to the few people doing the ringing, not to the group.",

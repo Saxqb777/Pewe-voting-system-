@@ -204,6 +204,80 @@ function ReportPanel({ data }: { data: DashboardData }) {
   );
 }
 
+
+/**
+ * A link the admin has to pass on, shown so it can actually be passed on.
+ *
+ * The address itself is the link, because that is what a thumb goes for, and
+ * a copy button sits beside it because the way this reaches anybody is being
+ * pasted into WhatsApp, not opened here.
+ */
+function LinkBox({
+  heading,
+  help,
+  url,
+  warning,
+  tone = "brand",
+}: {
+  heading: string;
+  help: string;
+  url: string;
+  warning?: string;
+  tone?: "brand" | "warn";
+}) {
+  const [copied, setCopied] = useState(false);
+  const edge = tone === "warn" ? "border-warn" : "border-brand";
+  const ink = tone === "warn" ? "text-warn" : "text-brand";
+
+  return (
+    <div className={`rounded-xl border-2 ${edge} bg-paper p-3`}>
+      <h3 className="text-base font-bold text-ink">{heading}</h3>
+      <p className="mt-1 text-sm text-ink-soft">{help}</p>
+
+      <a
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        className={`mt-2 block select-all break-all font-mono text-sm font-semibold underline ${ink}`}
+      >
+        {url}
+      </a>
+
+      <div className="mt-2 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(url);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            } catch {
+              // Some phones refuse the clipboard. The address is selectable
+              // above, so say nothing rather than throw a scary message.
+              setCopied(false);
+            }
+          }}
+          className="inline-flex min-h-12 items-center rounded-xl border-2 border-line bg-card px-4 py-2 text-base font-semibold text-ink"
+        >
+          {copied ? strings.admin.linkCopied : strings.admin.linkCopy}
+        </button>
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex min-h-12 items-center rounded-xl border-2 border-line bg-card px-4 py-2 text-base font-semibold text-ink"
+        >
+          {strings.admin.statusLinkOpen}
+        </a>
+      </div>
+
+      {warning ? (
+        <p className="mt-2 text-sm font-medium text-warn">{warning}</p>
+      ) : null}
+    </div>
+  );
+}
+
 function ReportBlock({
   title,
   rows,
@@ -802,48 +876,23 @@ function RosterPanel({ data }: { data: DashboardData }) {
         <div className="mt-3 space-y-4">
           {/* One link, sent once. It saves the admin from being asked for the
               same file every time somebody new registers. */}
-          <div className="rounded-xl border-2 border-brand bg-paper p-3">
-            <h3 className="text-base font-bold text-ink">
-              {strings.admin.statusLinkHeading}
-            </h3>
-            <p className="mt-1 text-sm text-ink-soft">{strings.admin.statusLinkHelp}</p>
-            <p className="mt-2 select-all break-all font-mono text-sm font-semibold text-brand">
-              {`${data.siteUrl}/status`}
-            </p>
-            <a
-              href="/status"
-              target="_blank"
-              rel="noreferrer"
-              className="mt-2 inline-flex min-h-12 items-center rounded-xl border-2 border-line bg-card px-4 py-2 text-base font-semibold text-ink"
-            >
-              {strings.admin.statusLinkOpen}
-            </a>
-          </div>
+          <LinkBox
+            heading={strings.admin.statusLinkHeading}
+            help={strings.admin.statusLinkHelp}
+            url={`${data.siteUrl}/status`}
+          />
 
           {/* A second link, for the handful of people doing the ringing. Kept
               apart from the one the village has, because being named for not
               having voted yet is not a thing to publish. */}
           {data.hasStarted && data.chaseUrl ? (
-            <div className="rounded-xl border-2 border-warn bg-paper p-3">
-              <h3 className="text-base font-bold text-ink">
-                {strings.admin.chaseLinkHeading}
-              </h3>
-              <p className="mt-1 text-sm text-ink-soft">{strings.admin.chaseLinkHelp}</p>
-              <p className="mt-2 select-all break-all font-mono text-sm font-semibold text-warn">
-                {data.chaseUrl}
-              </p>
-              <a
-                href={data.chaseUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-2 inline-flex min-h-12 items-center rounded-xl border-2 border-line bg-card px-4 py-2 text-base font-semibold text-ink"
-              >
-                {strings.admin.chaseLinkOpen}
-              </a>
-              <p className="mt-2 text-sm font-medium text-warn">
-                {strings.admin.chaseLinkWarning}
-              </p>
-            </div>
+            <LinkBox
+              tone="warn"
+              heading={strings.admin.chaseLinkHeading}
+              help={strings.admin.chaseLinkHelp}
+              url={data.chaseUrl}
+              warning={strings.admin.chaseLinkWarning}
+            />
           ) : null}
 
           {/* First, because a list that names only the men who are missing is
