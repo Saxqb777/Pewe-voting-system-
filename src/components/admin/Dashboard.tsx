@@ -820,6 +820,32 @@ function RosterPanel({ data }: { data: DashboardData }) {
             </a>
           </div>
 
+          {/* A second link, for the handful of people doing the ringing. Kept
+              apart from the one the village has, because being named for not
+              having voted yet is not a thing to publish. */}
+          {data.hasStarted && data.chaseUrl ? (
+            <div className="rounded-xl border-2 border-warn bg-paper p-3">
+              <h3 className="text-base font-bold text-ink">
+                {strings.admin.chaseLinkHeading}
+              </h3>
+              <p className="mt-1 text-sm text-ink-soft">{strings.admin.chaseLinkHelp}</p>
+              <p className="mt-2 select-all break-all font-mono text-sm font-semibold text-warn">
+                {data.chaseUrl}
+              </p>
+              <a
+                href={data.chaseUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-flex min-h-12 items-center rounded-xl border-2 border-line bg-card px-4 py-2 text-base font-semibold text-ink"
+              >
+                {strings.admin.chaseLinkOpen}
+              </a>
+              <p className="mt-2 text-sm font-medium text-warn">
+                {strings.admin.chaseLinkWarning}
+              </p>
+            </div>
+          ) : null}
+
           {/* First, because a list that names only the men who are missing is
               what brought the complaints. */}
           <div>

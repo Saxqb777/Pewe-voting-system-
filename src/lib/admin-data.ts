@@ -10,6 +10,7 @@ import { describeGap, describeGapHi } from "./countdown";
 import { displayPhone, normalisePhone, sameNumber } from "./phone";
 import { strings } from "./strings";
 import { societyName } from "./society-contacts";
+import { chaseUrl } from "./chase-link";
 
 /** A moment in the hour the village agreed on, which is India time. */
 function readableMoment(when: Date): string {
@@ -426,6 +427,8 @@ export type Dashboard = {
   report: Report;
   /** Where this site actually lives, for the link the admin hands out. */
   siteUrl: string;
+  /** The private address of the chasing list, for the admin to pass on. */
+  chaseUrl: string;
 };
 
 /**
@@ -557,6 +560,7 @@ export async function getDashboard(): Promise<Dashboard> {
     countries,
     report,
     siteUrl: config.siteUrl,
+    chaseUrl: chaseUrl(),
     audit: auditRows.map((a) => ({
       action: a.action,
       detail: a.detail,

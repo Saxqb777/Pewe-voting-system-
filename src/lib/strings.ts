@@ -125,6 +125,24 @@ export const strings = {
   // -----------------------------------------------------------------------
   // The page anybody may open. Pinned in the group so nobody has to ask.
   // -----------------------------------------------------------------------
+  chase: {
+    title: "Still to vote",
+    titleHi: "Jinhone abhi tak vote nahi diya",
+    stillToVote: "still to vote",
+    stillToVoteHi: "abhi baaki hain",
+    ofRoster: (voted: number, total: number) => `${voted} of ${total} have voted`,
+    help: "Tap any number to call. This page counts itself again every 30 seconds, so a name goes as soon as that person votes.",
+    helpHi:
+      "Kisi bhi number par tap karke call kijiye. Yeh page har 30 second mein khud update hota hai, jaise hi koi vote deta hai uska naam hat jata hai.",
+    everybodyVoted: "Everybody has voted. Nothing left to do.",
+    everybodyVotedHi: "Sabhi ne vote de diya. Ab kuch karna baaki nahi.",
+    updated: (when: string) => `Last checked ${when}`,
+    privacy:
+      "This page is for the people making the calls. It carries no voting codes, and nothing at all about how anybody voted.",
+    privacyHi:
+      "Yeh page sirf call karne walon ke liye hai. Is par koi voting code nahi hai, aur kisi ke vote ke baare mein kuch bhi nahi.",
+  },
+
   status: {
     title: "Who has registered",
     titleHi: "Kaun kaun register ho chuka hai",
@@ -737,6 +755,12 @@ export const strings = {
     statusLinkHelp:
       "Send this link once and let them pin it. It shows who has registered and updates on its own, so nobody has to ask you for a file again. Names and numbers, and no codes.",
     statusLinkOpen: "Open it",
+    chaseLinkHeading: "The link for whoever is making the calls",
+    chaseLinkHelp:
+      "Everybody still to vote, with their number, updating on its own. Send it to the few people doing the ringing, not to the group.",
+    chaseLinkOpen: "Open it",
+    chaseLinkWarning:
+      "Anybody holding this address can see the list, so keep it off the group. It carries no voting codes.",
     missingHeading: "Not yet registered",
     missingHeadingHi: "Jinhone abhi tak register nahi kiya",
     missingCount: (n: number) => `${n} still to register`,
