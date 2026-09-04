@@ -612,6 +612,34 @@ export type PublicStatus = {
   /** The chase, read the way a run rate is read. Empty before voting. */
   pace: string;
   paceHi: string;
+  /** The same day as a scoreboard. Null before voting starts. */
+  chase: Chase | null;
+};
+
+/**
+ * The day's play, in the language the village already argues in.
+ *
+ * A chase everybody understands: a target, a score, the rate you need and
+ * the rate you are going at. Nothing here is a new figure, it is the same
+ * turnout said in a way that makes a man want to ring his cousin.
+ */
+export type Chase = {
+  /** Everybody on the voter list. */
+  target: number;
+  /** How many have voted. */
+  score: number;
+  /** Still to vote. */
+  needed: number;
+  hoursGone: number;
+  hoursLeft: number;
+  /** Votes an hour needed from here to get everybody in. */
+  requiredRate: number;
+  /** Votes an hour actually arriving, since the ballot opened. */
+  currentRate: number;
+  /** Current rate against required, as a percentage. 100 is on par. */
+  strikeRate: number;
+  verdict: string;
+  verdictHi: string;
 };
 
 /**
@@ -622,6 +650,16 @@ export type PublicStatus = {
  * let any reader vote as its owner. The numbers are here at the society's
  * own decision, so a man can find himself among names that repeat.
  */
+/** How the chase is going, said the way it would be said out loud. */
+function verdictFor(ratio: number): { verdict: string; verdictHi: string } {
+  const v = strings.status;
+  if (ratio >= 2) return { verdict: v.verdictCruising, verdictHi: v.verdictCruisingHi };
+  if (ratio >= 1.2) return { verdict: v.verdictOnTop, verdictHi: v.verdictOnTopHi };
+  if (ratio >= 0.9) return { verdict: v.verdictTight, verdictHi: v.verdictTightHi };
+  if (ratio >= 0.6) return { verdict: v.verdictSlipping, verdictHi: v.verdictSlippingHi };
+  return { verdict: v.verdictBehind, verdictHi: v.verdictBehindHi };
+}
+
 export async function getPublicStatus(): Promise<PublicStatus> {
   await ensureSchema();
   const settings = await getSettings();
@@ -662,11 +700,24 @@ export async function getPublicStatus(): Promise<PublicStatus> {
 
   let pace = "";
   let paceHi = "";
+  let chase: Chase | null = null;
   if (settings.votingOpen) {
     const stillToVote = Math.max(0, roster - voted);
     if (stillToVote === 0) {
       pace = strings.status.votingPaceDone;
       paceHi = strings.status.votingPaceDoneHi;
+      chase = {
+        target: roster,
+        score: voted,
+        needed: 0,
+        hoursGone: Math.max(1, Math.round((Date.now() - opened.getTime()) / 3600e3)),
+        hoursLeft: Math.max(0, Math.round((closing.getTime() - Date.now()) / 3600e3)),
+        requiredRate: 0,
+        currentRate: 0,
+        strikeRate: 100,
+        verdict: strings.status.verdictChased,
+        verdictHi: strings.status.verdictChasedHi,
+      };
     } else {
       const left = Math.max(0, closing.getTime() - Date.now());
       // An hour at minimum either side, so the first minutes of the day do
@@ -675,6 +726,17 @@ export async function getPublicStatus(): Promise<PublicStatus> {
       const hoursOpen = Math.max(1, (Date.now() - opened.getTime()) / 3600e3);
       const need = Math.ceil(stillToVote / hoursLeft);
       const coming = Math.round(voted / hoursOpen);
+      chase = {
+        target: roster,
+        score: voted,
+        needed: stillToVote,
+        hoursGone: Math.round(hoursOpen),
+        hoursLeft: Math.round(hoursLeft),
+        requiredRate: need,
+        currentRate: coming,
+        strikeRate: need > 0 ? Math.round((coming / need) * 100) : 100,
+        ...verdictFor(need > 0 ? coming / need : 2),
+      };
       pace = strings.status.votingPace(
         stillToVote,
         describeGap(left),
@@ -726,6 +788,7 @@ export async function getPublicStatus(): Promise<PublicStatus> {
     closesAt: settings.votingOpen ? closing.toISOString() : null,
     pace,
     paceHi,
+    chase,
   };
 }
 

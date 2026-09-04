@@ -8,6 +8,7 @@ import { Screen } from "@/components/Screen";
 import { Brand, ContactLine } from "@/components/Brand";
 import { OpensAtNotice } from "@/components/OpensAtNotice";
 import { ClosesAtNotice } from "@/components/ClosesAtNotice";
+import { Scoreboard } from "@/components/Scoreboard";
 import { AutoRefresh } from "@/components/AutoRefresh";
 
 export const dynamic = "force-dynamic";
@@ -175,13 +176,6 @@ export default async function StatusPage() {
           <span className="block font-normal">{stage[1]}</span>
         </p>
 
-        {status.pace ? (
-          <p className="mt-3 rounded-xl bg-paper px-4 py-3 text-base font-semibold text-ink">
-            {status.pace}
-            <span className="mt-1 block font-normal text-ink-soft">{status.paceHi}</span>
-          </p>
-        ) : null}
-
         {voting ? (
           <p className="mt-3 text-sm text-ink-soft">
             {s.liveNote}
@@ -191,6 +185,7 @@ export default async function StatusPage() {
       </section>
 
       {status.opensAt ? <OpensAtNotice opensAt={status.opensAt} /> : null}
+      {status.chase ? <Scoreboard chase={status.chase} /> : null}
       {status.closesAt ? <ClosesAtNotice closesAt={status.closesAt} /> : null}
 
       {status.registrationOpen ? (
