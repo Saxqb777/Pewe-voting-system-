@@ -604,6 +604,9 @@ export type PublicStatus = {
   people: { name: string; phone: string; dial: string; joined: string }[];
   /** Every figure the admin's report carries, so the page can show its own. */
   report: Report;
+  /** How many are on the roster, and how many of them have voted. */
+  roster: number;
+  voted: number;
 };
 
 /**
@@ -630,7 +633,16 @@ export async function getPublicStatus(): Promise<PublicStatus> {
     ORDER BY registered_at NULLS LAST, name
   `;
 
-  const report = await getReport();
+  const [report, [turnout]] = await Promise.all([
+    getReport(),
+    // Two counts and nothing else. The ballot box is asked how many ballots
+    // it holds, never what is in any of them.
+    sql<{ roster: number; voted: number }[]>`
+      SELECT
+        (SELECT COUNT(*)::int FROM voters WHERE status = 'approved') AS roster,
+        (SELECT COUNT(*)::int FROM voters WHERE has_voted) AS voted
+    `,
+  ]);
 
   const opening = settings.opensAt ?? config.electionOpensAt;
   const registered = counts?.registered ?? 0;
@@ -666,6 +678,8 @@ export async function getPublicStatus(): Promise<PublicStatus> {
         : "",
     })),
     report,
+    roster: turnout?.roster ?? 0,
+    voted: turnout?.voted ?? 0,
   };
 }
 

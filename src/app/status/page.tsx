@@ -80,10 +80,15 @@ export default async function StatusPage() {
   const [status, settings] = await Promise.all([getPublicStatus(), getSettings()]);
   const s = strings.status;
 
+  // Once the ballot is open the village is watching a different number. The
+  // panel is the same shape, so the link the group pinned needs no reposting.
+  const voting = status.votingOpen || status.votingEnded;
+  const top = voting
+    ? { have: status.voted, outOf: status.roster }
+    : { have: status.registered, outOf: status.expected };
   const pct =
-    status.expected > 0
-      ? Math.min(100, Math.round((status.registered / status.expected) * 100))
-      : 0;
+    top.outOf > 0 ? Math.min(100, Math.round((top.have / top.outOf) * 100)) : 0;
+  const left = Math.max(0, top.outOf - top.have);
 
   const stage = status.votingEnded
     ? [s.votingDone, s.votingDoneHi]
@@ -104,14 +109,16 @@ export default async function StatusPage() {
 
   return (
     <Screen mode={settings.mode}>
-      <AutoRefresh />
+      <AutoRefresh seconds={voting ? 30 : 60} />
 
       <header className="text-center">
         <Brand />
         <h1 className="mt-4 text-2xl font-bold tracking-tight text-balance text-ink">
-          {s.title}
+          {voting ? s.votingTitle : s.title}
         </h1>
-        <p className="mt-1 text-lg text-ink-soft">{s.titleHi}</p>
+        <p className="mt-1 text-lg text-ink-soft">
+          {voting ? s.votingTitleHi : s.titleHi}
+        </p>
         <p className="mt-3 text-sm text-ink-soft">
           {s.lead}
           <span className="mt-1 block">{s.leadHi}</span>
@@ -123,14 +130,20 @@ export default async function StatusPage() {
       <section className="mt-6 rounded-2xl border-2 border-brand bg-card p-5 text-center">
         <p className="text-6xl font-bold tabular-nums text-brand">{pct}%</p>
         <p className="mt-1 text-base font-semibold text-ink">
-          {s.registeredNow}
-          <span className="block font-normal text-ink-soft">{s.registeredNowHi}</span>
+          {voting ? s.votedNow : s.registeredNow}
+          <span className="block font-normal text-ink-soft">
+            {voting ? s.votedNowHi : s.registeredNowHi}
+          </span>
         </p>
         <p className="mt-2 text-lg font-semibold tabular-nums text-ink">
-          {s.ofExpected(status.registered, status.expected)}
+          {voting
+            ? s.ofRoster(top.have, top.outOf)
+            : s.ofExpected(status.registered, status.expected)}
         </p>
         <p className="text-base text-ink-soft">
-          {s.ofExpectedHi(status.registered, status.expected)}
+          {voting
+            ? s.ofRosterHi(top.have, top.outOf)
+            : s.ofExpectedHi(status.registered, status.expected)}
         </p>
 
         <div aria-hidden className="mt-4 h-3 w-full overflow-hidden rounded-full bg-paper">
@@ -138,11 +151,21 @@ export default async function StatusPage() {
         </div>
 
         <p className="mt-3 text-base font-semibold text-ink">
-          {status.stillToCome > 0 ? s.stillToCome(status.stillToCome) : s.everybodyIn}
+          {voting
+            ? left > 0
+              ? s.stillToVote(left)
+              : s.everybodyVoted
+            : status.stillToCome > 0
+              ? s.stillToCome(status.stillToCome)
+              : s.everybodyIn}
           <span className="mt-1 block font-normal text-ink-soft">
-            {status.stillToCome > 0
-              ? s.stillToComeHi(status.stillToCome)
-              : s.everybodyInHi}
+            {voting
+              ? left > 0
+                ? s.stillToVoteHi(left)
+                : s.everybodyVotedHi
+              : status.stillToCome > 0
+                ? s.stillToComeHi(status.stillToCome)
+                : s.everybodyInHi}
           </span>
         </p>
 
@@ -150,6 +173,13 @@ export default async function StatusPage() {
           {stage[0]}
           <span className="block font-normal">{stage[1]}</span>
         </p>
+
+        {voting ? (
+          <p className="mt-3 text-sm text-ink-soft">
+            {s.liveNote}
+            <span className="block">{s.liveNoteHi}</span>
+          </p>
+        ) : null}
       </section>
 
       {status.opensAt ? <OpensAtNotice opensAt={status.opensAt} /> : null}
@@ -166,10 +196,18 @@ export default async function StatusPage() {
 
       <section className="mt-8">
         <h2 className="text-base font-bold text-ink">
-          {status.people.length > 0 ? s.listHeading(status.people.length) : s.notYet}
+          {status.people.length > 0
+            ? voting
+              ? s.rosterHeading(status.people.length)
+              : s.listHeading(status.people.length)
+            : s.notYet}
         </h2>
         <p className="mt-1 text-sm text-ink-soft">
-          {status.people.length > 0 ? s.listHeadingHi : s.notYetHi}
+          {status.people.length > 0
+            ? voting
+              ? s.rosterHeadingHi
+              : s.listHeadingHi
+            : s.notYetHi}
         </p>
 
         {status.people.length > 0 ? (
@@ -227,6 +265,13 @@ export default async function StatusPage() {
       </section>
 
       <p className="mt-6 text-center text-sm text-ink-soft">{s.updated(checked)}</p>
+      {voting ? (
+        <p className="mt-4 text-center text-sm font-medium text-ink-soft">
+          {s.noResultsYet}
+          <span className="mt-1 block font-normal">{s.noResultsYetHi}</span>
+        </p>
+      ) : null}
+
       <p className="mt-3 text-center text-xs text-ink-soft">
         {s.privacy}
         <span className="mt-1 block">{s.privacyHi}</span>
