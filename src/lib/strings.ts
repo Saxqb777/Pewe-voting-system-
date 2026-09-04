@@ -418,6 +418,13 @@ export const strings = {
     step6: "Voting closes",
     step6Done: "Voting is closed",
     step6Auto: (when: string) => `Closes on its own on ${when}. Nothing to do.`,
+    closeAnywayConfirm:
+      "Close anyway and take their votes away? This cannot be undone once the result is read.",
+    closeStopped: "Left open. Nobody has lost their vote.",
+    step6Waiting: (n: number) =>
+      n === 1
+        ? "Closes itself when the last person votes. 1 still to go."
+        : `Closes itself when the last person votes. ${n} still to go.`,
     removeClosing: "Let it run until I close it",
     removeClosingHelp:
       "Takes the closing time off. Voting then stays open until you press Close voting yourself.",

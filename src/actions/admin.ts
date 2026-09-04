@@ -247,15 +247,51 @@ export async function startVoting(): Promise<ActionResult> {
   return { ok: true, message: "Voting is open. Share the link." };
 }
 
-export async function closeVoting(): Promise<ActionResult> {
+/**
+ * Shuts the ballot.
+ *
+ * Refuses while anybody on the voter list is still holding a code, because
+ * closing early takes a man's vote away without him ever knowing it
+ * happened. That refusal can be overridden, and has to be: one man abroad
+ * who never votes must not be able to hold the society open for ever. So it
+ * is a question the first time and a decision the second, and the log says
+ * which one it was.
+ */
+export async function closeVoting(force = false): Promise<ActionResult> {
   if (!(await requireAdmin())) return DENIED;
+
+  const [{ n: waiting }] = await sql<{ n: number }[]>`
+    SELECT COUNT(*)::int AS n FROM voters
+    WHERE status = 'approved' AND NOT has_voted
+  `;
+
+  if (waiting > 0 && !force) {
+    return {
+      ok: false,
+      message:
+        waiting === 1
+          ? "1 person on the voter list has not voted yet. Closing now takes their vote away. Press again to close anyway."
+          : `${waiting} people on the voter list have not voted yet. Closing now takes their votes away. Press again to close anyway.`,
+    };
+  }
+
   await sql`
     UPDATE settings SET voting_open = FALSE, closed_at = NOW() WHERE id = 1
   `;
-  await audit("close_voting");
+  await audit(
+    "close_voting",
+    waiting > 0 ? `Closed with ${waiting} still to vote.` : "Everybody had voted.",
+  );
   revalidatePath("/admin");
   revalidatePath("/");
-  return { ok: true, message: "Voting is closed." };
+  revalidatePath("/status");
+  return {
+    ok: true,
+    message:
+      waiting > 0
+        ? `Voting is closed. ${waiting} did not vote.`
+        : "Voting is closed. Everybody voted.",
+  };
 }
 
 export async function reopenVoting(): Promise<ActionResult> {

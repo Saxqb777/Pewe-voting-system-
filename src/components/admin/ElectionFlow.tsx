@@ -320,14 +320,28 @@ export function ElectionFlow({
         <Step n={6} state={step[6]} title={a.step6}
           detail={
             data.votingEnded ? a.step6Done
-              : data.closesAt ? a.step6Auto(readable(data.closesAt))
-                : data.hasStarted ? a.step6Open
-                  : a.step6Todo
+              : data.hasStarted && data.turnout.total > data.turnout.voted
+                ? a.step6Waiting(data.turnout.total - data.turnout.voted)
+                : data.closesAt ? a.step6Auto(readable(data.closesAt))
+                  : data.hasStarted ? a.step6Open
+                    : a.step6Todo
           }>
           {step[6] === "now" ? (
             <>
+              {/* The first press asks. Anybody still holding a code is named
+                  in the answer, and only a second press closes over them. */}
               <Button tone="danger" disabled={pending}
-                onClick={() => { if (window.confirm(a.closeVotingConfirm)) run(closeVoting); }}>
+                onClick={() => {
+                  if (!window.confirm(a.closeVotingConfirm)) return;
+                  run(async () => {
+                    const first = await closeVoting();
+                    if (first.ok) return first;
+                    if (!window.confirm(`${first.message}\n\n${a.closeAnywayConfirm}`)) {
+                      return { ok: false, message: a.closeStopped };
+                    }
+                    return closeVoting(true);
+                  });
+                }}>
                 {a.closeVoting}
               </Button>
 

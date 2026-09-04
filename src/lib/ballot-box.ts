@@ -68,6 +68,24 @@ export async function castBallot(params: {
       SELECT ballot_id, choices, created_at FROM ballot_shuffle
     `;
 
+    // The last man in closes the election.
+    //
+    // A vote that is already complete has nothing left to wait for, and the
+    // society would rather it shut itself the moment everybody is in than
+    // sit open through the night on a clock. Counted inside this same
+    // transaction, so the ballot just written is included and two men
+    // finishing together cannot both find somebody still out.
+    const [{ n: waiting }] = await tx<{ n: number }[]>`
+      SELECT COUNT(*)::int AS n FROM voters
+      WHERE status = 'approved' AND NOT has_voted
+    `;
+    if (waiting === 0) {
+      await tx`
+        UPDATE settings SET closed_at = NOW()
+        WHERE id = 1 AND closed_at IS NULL
+      `;
+    }
+
     return "ok" as const;
   });
 }
