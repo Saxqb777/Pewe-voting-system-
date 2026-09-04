@@ -180,11 +180,46 @@ export async function setVotingWindow(
 
 export async function clearVotingWindow(): Promise<ActionResult> {
   if (!(await requireAdmin())) return DENIED;
-  await sql`UPDATE settings SET opens_at = NULL, closes_at = NULL WHERE id = 1`;
+  // The opening time is what holds a running ballot open. Clearing it while
+  // people are voting would shut the vote in the same breath, so the start
+  // is written down first and the schedule removed after.
+  await sql`
+    UPDATE settings SET
+      started_at = COALESCE(started_at, opens_at),
+      opens_at = NULL,
+      closes_at = NULL
+    WHERE id = 1
+  `;
   await audit("clear_voting_window");
   revalidatePath("/admin");
   revalidatePath("/");
   return { ok: true, message: "Voting times removed." };
+}
+
+/**
+ * Takes the closing time off and leaves the ballot open.
+ *
+ * For the night the society would rather watch the room than the clock. The
+ * start is pinned in the same statement, so nothing about removing the
+ * deadline can stop the vote that is already running, and closing becomes
+ * something a person does on purpose.
+ */
+export async function removeClosingTime(): Promise<ActionResult> {
+  if (!(await requireAdmin())) return DENIED;
+  await sql`
+    UPDATE settings SET
+      started_at = COALESCE(started_at, opens_at, NOW()),
+      closes_at = NULL
+    WHERE id = 1
+  `;
+  await audit("remove_closing_time", "Voting stays open until it is closed by hand.");
+  revalidatePath("/admin");
+  revalidatePath("/");
+  revalidatePath("/status");
+  return {
+    ok: true,
+    message: "Voting will now stay open until you close it yourself.",
+  };
 }
 
 /** Opens the ballot. Nothing can be cast until this happens. */

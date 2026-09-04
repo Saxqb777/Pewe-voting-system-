@@ -8,7 +8,12 @@ import { displayPhone, normalisePhone } from "@/lib/phone";
 import { REGISTRATION_PHRASE } from "@/lib/phrases";
 import type { Dashboard } from "@/lib/admin-data";
 import type { ActionResult } from "@/actions/admin";
-import { closeVoting, reopenVoting, startVoting } from "@/actions/admin";
+import {
+  closeVoting,
+  reopenVoting,
+  startVoting,
+  removeClosingTime,
+} from "@/actions/admin";
 import {
   loadAllowedNumbers,
   openRegistration,
@@ -316,13 +321,30 @@ export function ElectionFlow({
           detail={
             data.votingEnded ? a.step6Done
               : data.closesAt ? a.step6Auto(readable(data.closesAt))
-                : a.step6Todo
+                : data.hasStarted ? a.step6Open
+                  : a.step6Todo
           }>
           {step[6] === "now" ? (
-            <Button tone="danger" disabled={pending}
-              onClick={() => { if (window.confirm(a.closeVotingConfirm)) run(closeVoting); }}>
-              {a.closeVoting}
-            </Button>
+            <>
+              <Button tone="danger" disabled={pending}
+                onClick={() => { if (window.confirm(a.closeVotingConfirm)) run(closeVoting); }}>
+                {a.closeVoting}
+              </Button>
+
+              {/* The clock is a convenience, not a rule. Taking it off leaves
+                  the ballot open until somebody decides it is done. */}
+              {data.closesAt ? (
+                <div className="mt-3">
+                  <Button disabled={pending}
+                    onClick={() => {
+                      if (window.confirm(a.removeClosingConfirm)) run(removeClosingTime);
+                    }}>
+                    {a.removeClosing}
+                  </Button>
+                  <p className="mt-2 text-sm text-ink-soft">{a.removeClosingHelp}</p>
+                </div>
+              ) : null}
+            </>
           ) : data.votingEnded ? (
             <Button disabled={pending} onClick={() => run(reopenVoting)}>
               {a.reopenVoting}

@@ -655,6 +655,8 @@ export type Chase = {
   needed: number;
   hoursGone: number;
   hoursLeft: number;
+  /** True when no closing time is set and the ballot runs until it is shut. */
+  openEnded: boolean;
   /** Votes an hour needed from here to get everybody in. */
   requiredRate: number;
   /** Votes an hour actually arriving, since the ballot opened. */
@@ -718,7 +720,9 @@ export async function getPublicStatus(): Promise<PublicStatus> {
   // actually arriving.
   const roster = turnout?.roster ?? 0;
   const voted = turnout?.voted ?? 0;
-  const closing = settings.closesAt ?? config.electionClosesAt;
+  // Null once the society takes the deadline off, which is a real state and
+  // not a missing value: the ballot then runs until somebody closes it.
+  const closing = settings.closesAt;
   const opened = settings.startedAt ?? settings.opensAt ?? config.electionOpensAt;
 
   let pace = "";
@@ -734,7 +738,10 @@ export async function getPublicStatus(): Promise<PublicStatus> {
         score: voted,
         needed: 0,
         hoursGone: Math.max(1, Math.round((Date.now() - opened.getTime()) / 3600e3)),
-        hoursLeft: Math.max(0, Math.round((closing.getTime() - Date.now()) / 3600e3)),
+        hoursLeft: closing
+          ? Math.max(0, Math.round((closing.getTime() - Date.now()) / 3600e3))
+          : 0,
+        openEnded: !closing,
         requiredRate: 0,
         currentRate: 0,
         strikeRate: 100,
@@ -742,36 +749,47 @@ export async function getPublicStatus(): Promise<PublicStatus> {
         verdictHi: strings.status.verdictChasedHi,
       };
     } else {
-      const left = Math.max(0, closing.getTime() - Date.now());
+      const left = closing ? Math.max(0, closing.getTime() - Date.now()) : 0;
       // An hour at minimum either side, so the first minutes of the day do
       // not read as a thousand an hour and the last do not read as infinity.
       const hoursLeft = Math.max(1, left / 3600e3);
       const hoursOpen = Math.max(1, (Date.now() - opened.getTime()) / 3600e3);
-      const need = Math.ceil(stillToVote / hoursLeft);
+      // With no deadline there is no rate to keep up with, only a number
+      // still to come, so the board drops the required rate rather than
+      // inventing one out of a closing time nobody has set.
+      const need = closing ? Math.ceil(stillToVote / hoursLeft) : 0;
       const coming = Math.round(voted / hoursOpen);
       chase = {
         target: roster,
         score: voted,
         needed: stillToVote,
         hoursGone: Math.round(hoursOpen),
-        hoursLeft: Math.round(hoursLeft),
+        hoursLeft: closing ? Math.round(hoursLeft) : 0,
+        openEnded: !closing,
         requiredRate: need,
         currentRate: coming,
         strikeRate: need > 0 ? Math.round((coming / need) * 100) : 100,
-        ...verdictFor(need > 0 ? coming / need : 2),
+        // Without a clock the reading is simply how much of the list is in.
+        ...verdictFor(need > 0 ? coming / need : voted / Math.max(1, roster) + 0.9),
       };
-      pace = strings.status.votingPace(
-        stillToVote,
-        describeGap(left),
-        strings.status.perHour(need),
-        strings.status.perHour(coming),
-      );
-      paceHi = strings.status.votingPaceHi(
-        stillToVote,
-        describeGapHi(left),
-        strings.status.perHourHi(need),
-        strings.status.perHourHi(coming),
-      );
+      // The sentence only makes sense against a deadline. With none set the
+      // board carries the day on its own.
+      pace = closing
+        ? strings.status.votingPace(
+            stillToVote,
+            describeGap(left),
+            strings.status.perHour(need),
+            strings.status.perHour(coming),
+          )
+        : "";
+      paceHi = closing
+        ? strings.status.votingPaceHi(
+            stillToVote,
+            describeGapHi(left),
+            strings.status.perHourHi(need),
+            strings.status.perHourHi(coming),
+          )
+        : "";
     }
   }
 
@@ -808,7 +826,7 @@ export async function getPublicStatus(): Promise<PublicStatus> {
     report,
     roster,
     voted,
-    closesAt: settings.votingOpen ? closing.toISOString() : null,
+    closesAt: settings.votingOpen && closing ? closing.toISOString() : null,
     pace,
     paceHi,
     chase,

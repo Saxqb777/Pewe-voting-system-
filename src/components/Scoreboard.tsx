@@ -21,7 +21,7 @@ export function Scoreboard({ chase }: { chase: Chase }) {
           <span className="ml-2 font-normal opacity-80">{s.scoreHeadingHi}</span>
         </h2>
         <span className="text-xs tabular-nums opacity-80">
-          {s.scoreLeft(chase.hoursLeft)}
+          {chase.openEnded ? s.scoreNoClock : s.scoreLeft(chase.hoursLeft)}
         </span>
       </div>
 
@@ -38,26 +38,44 @@ export function Scoreboard({ chase }: { chase: Chase }) {
         </p>
       </div>
 
-      <dl className="grid grid-cols-3 gap-px bg-white/20">
-        <Cell
-          label={s.scoreRequired}
-          labelHi={s.scoreRequiredHi}
-          value={String(chase.requiredRate)}
-          note={s.scorePerHour(chase.requiredRate)}
-        />
+      {/* With no closing time there is no rate to keep up with, so the board
+          shows what is left rather than inventing a required rate out of a
+          deadline nobody has set. */}
+      <dl
+        className={`grid gap-px bg-white/20 ${
+          chase.openEnded ? "grid-cols-2" : "grid-cols-3"
+        }`}
+      >
+        {chase.openEnded ? null : (
+          <Cell
+            label={s.scoreRequired}
+            labelHi={s.scoreRequiredHi}
+            value={String(chase.requiredRate)}
+            note={s.scorePerHour(chase.requiredRate)}
+          />
+        )}
         <Cell
           label={s.scoreCurrent}
           labelHi={s.scoreCurrentHi}
           value={String(chase.currentRate)}
           note={s.scorePerHour(chase.currentRate)}
         />
-        <Cell
-          label={s.scoreStrike}
-          labelHi={s.scoreStrikeHi}
-          value={String(chase.strikeRate)}
-          note={s.scoreOnPar}
-          strong={par}
-        />
+        {chase.openEnded ? (
+          <Cell
+            label={s.scoreStillOut}
+            labelHi={s.scoreStillOutHi}
+            value={String(chase.needed)}
+            note={s.scoreOpenNote}
+          />
+        ) : (
+          <Cell
+            label={s.scoreStrike}
+            labelHi={s.scoreStrikeHi}
+            value={String(chase.strikeRate)}
+            note={s.scoreOnPar}
+            strong={par}
+          />
+        )}
       </dl>
 
       <p
