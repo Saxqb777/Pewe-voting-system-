@@ -801,6 +801,24 @@ export const strings = {
       "Everybody here is on the voter list and has not voted yet. Please call them. No voting codes are on this page.",
     notVotedPrivacyHi:
       "Yeh sab log voter list mein hain aur inhone abhi tak vote nahi diya. Inhe call kijiye. Is page par koi code nahi hai.",
+    timelineHeading: "How the voting went",
+    timelineHeadingHi: "Voting kaise chali, ghante ke hisaab se",
+    timelineCount: (voted: number, roster: number) => `${voted} of ${roster} voted`,
+    timelineFirst: "First vote",
+    timelineLast: "Last vote",
+    timelineBusiest: "Busiest hour",
+    timelinePerHour: "Average an hour",
+    timelineHoursOpen: "Hours counted",
+    timelineColHour: "HOUR",
+    timelineColVotes: "VOTES",
+    timelineColRunning: "RUNNING TOTAL",
+    timelinePrivacy:
+      "Counted from the register, which keeps the hour a man voted and nothing finer. Nothing here says what anybody chose.",
+    timelinePrivacyHi:
+      "Yeh register se gina gaya hai, jo sirf ghanta rakhta hai, usse zyada kuch nahi. Yahan kisi ke vote ke baare mein kuch bhi nahi hai.",
+    timelineDownload: "Download how the voting went",
+    timelineDownloadHelp:
+      "Hour by hour, how many voted and the running total, with where they were voting from. Safe to share: it carries no names and nothing about anybody's choices.",
     notVotedDownload: "Download who has not voted",
     notVotedDownloadHelp:
       "Names and numbers of everyone still holding a code, so you know who to ring. For you, not for the group, and no codes on it.",

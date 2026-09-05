@@ -77,6 +77,110 @@ export async function getNotVotedList(): Promise<RegisteredRow[]> {
   }));
 }
 
+/** One hour of the day, and how the vote moved in it. */
+export type VotingHour = {
+  /** The hour itself, written for a reader in India. */
+  label: string;
+  /** How many voted during it. */
+  votes: number;
+  /** How many had voted by the end of it. */
+  running: number;
+};
+
+export type VotingTimeline = {
+  hours: VotingHour[];
+  roster: number;
+  voted: number;
+  /** The hour that brought the most, and how many that was. */
+  busiest: VotingHour | null;
+  first: string;
+  last: string;
+  /** Average across the hours the ballot has actually been open. */
+  perHour: number;
+  /** Where the voters were, by the country each gave at registration. */
+  countries: { name: string; votes: number }[];
+};
+
+/**
+ * How the voting went, hour by hour.
+ *
+ * The register keeps the hour a man voted and nothing finer, which is what
+ * makes this safe to write down: it says how many voted between four and
+ * five, never who, and the ballot box carries no time at all, so no row here
+ * can be lined up against a vote. Ballots hold a date and nothing else.
+ */
+export async function getVotingTimeline(): Promise<VotingTimeline> {
+  await ensureSchema();
+
+  const [rows, [totals], places] = await Promise.all([
+    sql<{ hour: Date; n: number }[]>`
+      SELECT voted_at AS hour, COUNT(*)::int AS n FROM voters
+      WHERE has_voted AND voted_at IS NOT NULL
+      GROUP BY voted_at ORDER BY voted_at
+    `,
+    sql<{ roster: number; voted: number }[]>`
+      SELECT
+        (SELECT COUNT(*)::int FROM voters WHERE status = 'approved') AS roster,
+        (SELECT COUNT(*)::int FROM voters WHERE has_voted) AS voted
+    `,
+    sql<{ country: string | null; n: number }[]>`
+      SELECT country, COUNT(*)::int AS n FROM voters
+      WHERE has_voted GROUP BY country ORDER BY COUNT(*) DESC, country
+    `,
+  ]);
+
+  // Written as the hour it covers rather than the instant it starts. The
+  // register truncates in UTC, which lands on the half hour in India, and
+  // "02:30" on its own only makes a reader wonder what happened at 02:29.
+  const clock = (at: Date) =>
+    at.toLocaleString("en-GB", {
+      timeZone: "Asia/Kolkata",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  const day = (at: Date) =>
+    at.toLocaleString("en-GB", {
+      timeZone: "Asia/Kolkata",
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    });
+  const when = (at: Date) =>
+    `${day(at)}  ${clock(at)} to ${clock(new Date(at.getTime() + 3600e3))}`;
+
+  // Every hour between the first vote and the last, so a quiet stretch shows
+  // as a gap in the run rather than vanishing from the page.
+  const hours: VotingHour[] = [];
+  let running = 0;
+  if (rows.length > 0) {
+    const start = rows[0].hour.getTime();
+    const end = rows[rows.length - 1].hour.getTime();
+    const counts = new Map(rows.map((r) => [r.hour.getTime(), r.n]));
+    for (let t = start; t <= end; t += 3600e3) {
+      const votes = counts.get(t) ?? 0;
+      running += votes;
+      hours.push({ label: when(new Date(t)), votes, running });
+    }
+  }
+
+  const busiest = hours.reduce<VotingHour | null>(
+    (best, h) => (best === null || h.votes > best.votes ? h : best),
+    null,
+  );
+
+  return {
+    hours,
+    roster: totals?.roster ?? 0,
+    voted: totals?.voted ?? 0,
+    busiest,
+    first: hours[0]?.label ?? "",
+    last: hours[hours.length - 1]?.label ?? "",
+    perHour: hours.length > 0 ? Math.round((running / hours.length) * 10) / 10 : 0,
+    countries: places.map((p) => ({ name: p.country || "Not given", votes: p.n })),
+  };
+}
+
 export type Flags = {
   sharedDevices: { fingerprint: string; voters: PendingVoter[] }[];
   sharedIps: { ip: string; voters: PendingVoter[] }[];

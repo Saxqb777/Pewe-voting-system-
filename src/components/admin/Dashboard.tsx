@@ -933,6 +933,20 @@ function RosterPanel({ data }: { data: DashboardData }) {
             </p>
           </div>
 
+          {data.hasStarted ? (
+            <div>
+              <a
+                href="/api/admin/timeline"
+                className="inline-flex min-h-12 items-center rounded-xl border-2 border-brand bg-brand px-4 py-2 text-base font-bold text-white"
+              >
+                {strings.admin.timelineDownload}
+              </a>
+              <p className="mt-2 text-sm text-ink-soft">
+                {strings.admin.timelineDownloadHelp}
+              </p>
+            </div>
+          ) : null}
+
           {/* Only worth offering once there is a vote to chase. */}
           {data.hasStarted ? (
             <div>

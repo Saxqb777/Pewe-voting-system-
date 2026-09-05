@@ -9,7 +9,7 @@ import {
   type PDFPage,
   type PDFFont,
 } from "pdf-lib";
-import type { Report, ReportLine } from "./admin-data";
+import type { Report, ReportLine, VotingTimeline } from "./admin-data";
 import { strings } from "./strings";
 
 /**
@@ -455,6 +455,138 @@ export async function bothListsPdf(
   text(ctx, a.bothPrivacy, { size: 9, color: SOFT });
   ctx.y -= 12;
   text(ctx, a.bothPrivacyHi, { size: 9, color: SOFT });
+
+  return doc.save();
+}
+
+/**
+ * How the voting went, hour by hour, as a page the society can keep.
+ *
+ * Every figure here comes from the register, which records the hour a man
+ * voted and nothing finer. Nothing on it says what anybody chose, and the
+ * ballot box holds no time at all, so no line here can be lined up against
+ * a vote.
+ */
+export async function timelinePdf(
+  timeline: VotingTimeline,
+  when: string,
+): Promise<Uint8Array> {
+  const a = strings.admin;
+  const doc = await PDFDocument.create();
+  const regular = await doc.embedFont(StandardFonts.Helvetica);
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const ctx: Ctx = { doc, page: doc.addPage(A4), y: A4[1] - MARGIN, regular, bold };
+
+  doc.setTitle(a.timelineHeading);
+  doc.setAuthor(strings.common.orgName);
+  await letterhead(ctx);
+
+  ctx.y -= 26;
+  text(ctx, a.timelineHeading, { size: 18, font: bold });
+  ctx.y -= 16;
+  text(ctx, a.timelineHeadingHi, { size: 11, color: SOFT });
+  ctx.y -= 16;
+  text(ctx, a.timelineCount(timeline.voted, timeline.roster), {
+    size: 11, font: bold, color: BRAND,
+  });
+  ctx.y -= 14;
+  text(ctx, a.namesTaken(when), { size: 9, color: SOFT });
+
+  // --- the shape of the day in one paragraph ------------------------------
+  const facts: [string, string][] = [
+    [a.timelineFirst, timeline.first || "-"],
+    [a.timelineLast, timeline.last || "-"],
+    [a.timelineBusiest, timeline.busiest
+      ? `${timeline.busiest.label} (${timeline.busiest.votes})`
+      : "-"],
+    [a.timelinePerHour, String(timeline.perHour)],
+    [a.timelineHoursOpen, String(timeline.hours.length)],
+  ];
+  ctx.y -= 22;
+  for (const [label, value] of facts) {
+    room(ctx, 16);
+    text(ctx, label, { size: 10, color: SOFT });
+    rightText(ctx, value, A4[0] - MARGIN, { size: 10, font: bold });
+    ctx.y -= 15;
+  }
+
+  // --- the hours ----------------------------------------------------------
+  const HOUR_X = MARGIN;
+  const VOTES_X = MARGIN + 210;
+  const BAR_X = MARGIN + 260;
+  const BAR_W = A4[0] - MARGIN - BAR_X - 60;
+  const RIGHT = A4[0] - MARGIN;
+  const most = Math.max(1, timeline.busiest?.votes ?? 1);
+
+  const heading = () => {
+    ctx.y -= 20;
+    text(ctx, a.timelineColHour, { size: 8.5, font: bold, color: SOFT, x: HOUR_X });
+    text(ctx, a.timelineColVotes, { size: 8.5, font: bold, color: SOFT, x: VOTES_X });
+    rightText(ctx, a.timelineColRunning, RIGHT, { size: 8.5, font: bold, color: SOFT });
+    ctx.y -= 6;
+    ctx.page.drawLine({
+      start: { x: MARGIN, y: ctx.y },
+      end: { x: A4[0] - MARGIN, y: ctx.y },
+      thickness: 1,
+      color: RULE,
+    });
+    ctx.y -= 14;
+  };
+  heading();
+
+  for (const hour of timeline.hours) {
+    if (ctx.y < MARGIN + 54) {
+      newPage(ctx);
+      heading();
+    }
+    ctx.page.drawText(hour.label, {
+      x: HOUR_X, y: ctx.y, size: 9, font: regular, color: INK,
+    });
+    ctx.page.drawText(String(hour.votes), {
+      x: VOTES_X, y: ctx.y, size: 10, font: bold, color: hour.votes === 0 ? SOFT : INK,
+    });
+    // A bar against the busiest hour, so the shape of the day reads at a
+    // glance rather than having to be worked out from the column.
+    ctx.page.drawRectangle({
+      x: BAR_X, y: ctx.y - 1, width: BAR_W, height: 6, color: TRACK,
+    });
+    if (hour.votes > 0) {
+      ctx.page.drawRectangle({
+        x: BAR_X, y: ctx.y - 1,
+        width: Math.max(2, (hour.votes / most) * BAR_W),
+        height: 6,
+        color: BRAND,
+      });
+    }
+    rightText(ctx, String(hour.running), RIGHT, { size: 9, color: SOFT });
+    ctx.y -= 15;
+  }
+
+  // --- where they were ----------------------------------------------------
+  if (timeline.countries.length > 0) {
+    room(ctx, 40 + timeline.countries.length * 15);
+    ctx.y -= 16;
+    text(ctx, a.reportCountries, { size: 11, font: bold });
+    ctx.y -= 16;
+    for (const place of timeline.countries) {
+      room(ctx, 16);
+      text(ctx, place.name, { size: 10 });
+      rightText(ctx, String(place.votes), RIGHT, { size: 10, font: bold });
+      ctx.y -= 15;
+    }
+  }
+
+  ctx.y = MARGIN + 30;
+  ctx.page.drawLine({
+    start: { x: MARGIN, y: ctx.y },
+    end: { x: A4[0] - MARGIN, y: ctx.y },
+    thickness: 1,
+    color: RULE,
+  });
+  ctx.y -= 14;
+  text(ctx, a.timelinePrivacy, { size: 9, color: SOFT });
+  ctx.y -= 12;
+  text(ctx, a.timelinePrivacyHi, { size: 9, color: SOFT });
 
   return doc.save();
 }
