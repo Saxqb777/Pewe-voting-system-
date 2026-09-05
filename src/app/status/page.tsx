@@ -9,6 +9,7 @@ import { Brand, ContactLine } from "@/components/Brand";
 import { OpensAtNotice } from "@/components/OpensAtNotice";
 import { ClosesAtNotice } from "@/components/ClosesAtNotice";
 import { Scoreboard } from "@/components/Scoreboard";
+import { ResultBoard } from "@/components/ResultBoard";
 import { AutoRefresh } from "@/components/AutoRefresh";
 
 export const dynamic = "force-dynamic";
@@ -116,10 +117,10 @@ export default async function StatusPage() {
       <header className="text-center">
         <Brand />
         <h1 className="mt-4 text-2xl font-bold tracking-tight text-balance text-ink">
-          {voting ? s.votingTitle : s.title}
+          {status.results ? s.resultTitle : voting ? s.votingTitle : s.title}
         </h1>
         <p className="mt-1 text-lg text-ink-soft">
-          {voting ? s.votingTitleHi : s.titleHi}
+          {status.results ? s.resultTitleHi : voting ? s.votingTitleHi : s.titleHi}
         </p>
         <p className="mt-3 text-sm text-ink-soft">
           {s.lead}
@@ -127,6 +128,10 @@ export default async function StatusPage() {
         </p>
       </header>
 
+      {status.results ? (
+        <ResultBoard results={status.results} />
+      ) : (
+        <>
       {/* The one figure everybody opens this page for, said as a share. A
           count alone means nothing without the number it is out of. */}
       <section className="mt-6 rounded-2xl border-2 border-brand bg-card p-5 text-center">
@@ -273,9 +278,16 @@ export default async function StatusPage() {
         <Block title={strings.admin.reportVoting} lines={status.report.voting} />
         <Block title={strings.admin.reportCountries} lines={status.report.countries} />
       </section>
+        </>
+      )}
 
       <p className="mt-6 text-center text-sm text-ink-soft">{s.updated(checked)}</p>
-      {voting ? (
+      {status.results ? (
+        <p className="mt-4 text-center text-sm font-medium text-ink-soft">
+          {s.resultPrivacy}
+          <span className="mt-1 block font-normal">{s.resultPrivacyHi}</span>
+        </p>
+      ) : voting ? (
         <p className="mt-4 text-center text-sm font-medium text-ink-soft">
           {s.noResultsYet}
           <span className="mt-1 block font-normal">{s.noResultsYetHi}</span>

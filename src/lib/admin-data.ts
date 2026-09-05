@@ -745,6 +745,12 @@ export type PublicStatus = {
   paceHi: string;
   /** The same day as a scoreboard. Null before voting starts. */
   chase: Chase | null;
+  /**
+   * The result, once voting has finished. Null until then, and the count is
+   * refused rather than half done, so this page can never show a partial
+   * standing while a vote is still running.
+   */
+  results: Results | null;
 };
 
 /**
@@ -808,6 +814,10 @@ export async function getPublicStatus(): Promise<PublicStatus> {
     WHERE status = 'approved'
     ORDER BY registered_at NULLS LAST, name
   `;
+
+  // Counts only, and only once it is over. getResults refuses outright while
+  // voting is open, so the guard here is belt as well as braces.
+  const results = settings.votingEnded ? await getResults().catch(() => null) : null;
 
   const [report, [turnout]] = await Promise.all([
     getReport(),
@@ -938,6 +948,7 @@ export async function getPublicStatus(): Promise<PublicStatus> {
     pace,
     paceHi,
     chase,
+    results,
   };
 }
 
