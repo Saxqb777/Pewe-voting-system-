@@ -812,6 +812,32 @@ export const strings = {
     resultsColVotes: "VOTES",
     resultsTie: (place: number, votes: number) =>
       `A tie at place ${place}, on ${votes} votes each.`,
+    resultsColShare: "SHARE",
+    analysisHeading: "What the numbers say",
+    analysisHeadingHi: "Aankdon se kya pata chalta hai",
+    analysisTurnout: (voted: number, roster: number, pct: string) =>
+      `${voted} of the ${roster} on the voter list voted, which is ${pct} per cent. Every ballot carried the same number of names, so no ballot counted for more than any other.`,
+    analysisTurnoutHi:
+      "Voter list ke logon mein se itne logon ne vote diya. Har ballot par utne hi naam the, isliye kisi ballot ki keemat kisi doosre se zyada nahi thi.",
+    analysisTop: (name: string, votes: number, pct: string) =>
+      `${name} was named on the most ballots, ${votes} of them, which is ${pct} of everybody who voted.`,
+    analysisTopHi: "Sabse zyada ballot par yahi naam aaya.",
+    analysisCut: (cutVotes: number, cutShare: string, outVotes: number, margin: number) =>
+      `The last seat was won on ${cutVotes} votes, ${cutShare} of ballots. The man who missed it had ${outVotes}. The line between being elected and not was ${margin} ${margin === 1 ? "vote" : "votes"}.`,
+    analysisCutHi:
+      "Aakhri seat itne voton par mili, aur jo reh gaye unke itne vote the. Farq sirf itne voton ka tha.",
+    analysisSplit: (seats: number, electedVotes: number, total: number, pct: string, others: number) =>
+      `The ${seats} elected took ${electedVotes} of the ${total} votes cast, ${pct} per cent. The other ${others} candidates shared the rest between them.`,
+    analysisSplitHi:
+      "Chune gaye logon ko kul voton ka itna hissa mila, baaki sab ne aapas mein baanta.",
+    analysisSpread: (top: number, low: number, median: number, candidates: number) =>
+      `Votes ran from ${top} at the top to ${low} at the bottom, across ${candidates} candidates. The middle candidate had ${median}, so the society's support was concentrated rather than spread evenly.`,
+    analysisSpreadHi:
+      "Sabse zyada aur sabse kam voton mein bahut farq tha. Beech wale ummeedwar ke itne hi vote the.",
+    analysisTies: (names: string) =>
+      `Two places among the elected were tied: ${names}. Neither tie fell on the last seat, so no place had to be decided any other way.`,
+    analysisTiesHi:
+      "Chune gaye logon mein do jagah barabar vote the. Koi bhi barabari aakhri seat par nahi thi.",
     resultsChecks: "The count, checked",
     resultsChecksHi: "Ginti ki jaanch",
     resultsBallots: "Ballots in the box",

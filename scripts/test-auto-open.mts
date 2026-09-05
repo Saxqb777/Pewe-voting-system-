@@ -36,7 +36,7 @@ async function reset(opensAt: Date | null) {
   await sql`
     UPDATE settings SET mode = 'live', registration_open = TRUE, roster_locked = FALSE,
       voting_open = FALSE, started_at = NULL, closed_at = NULL,
-      opens_at = ${opensAt}, closes_at = NULL
+      opens_at = ${opensAt}, closes_at = NOW() + interval '6 hours'
     WHERE id = 1
   `;
 }
@@ -75,6 +75,8 @@ async function main() {
   check("the hour passes and voting is open", s.votingOpen, `open=${s.votingOpen}`);
   check("the roster is fixed", s.rosterLocked);
   check("registration has closed", !s.registrationOpen);
+  // Its own closing time, not the one in the config, which is a real date
+  // that eventually passes and would fail this file every day after it.
   check("a closing time is set", s.closesAt !== null, String(s.closesAt));
 
   const [{ n: waiting }] = await sql<{ n: number }[]>`

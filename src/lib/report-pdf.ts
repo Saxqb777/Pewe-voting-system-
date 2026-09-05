@@ -37,6 +37,24 @@ type Ctx = {
   bold: PDFFont;
 };
 
+/** Breaks a sentence into lines that fit the page. */
+function wrap(line: string, font: PDFFont, size: number, width: number): string[] {
+  const words = line.split(" ");
+  const out: string[] = [];
+  let current = "";
+  for (const word of words) {
+    const next = current === "" ? word : `${current} ${word}`;
+    if (font.widthOfTextAtSize(next, size) > width && current !== "") {
+      out.push(current);
+      current = word;
+    } else {
+      current = next;
+    }
+  }
+  if (current !== "") out.push(current);
+  return out;
+}
+
 function newPage(ctx: Ctx): void {
   ctx.page = ctx.doc.addPage(A4);
   ctx.y = A4[1] - MARGIN;
@@ -491,7 +509,13 @@ export async function resultsPdf(
   await letterhead(ctx);
 
   const winners = results.rows.filter((r) => r.isWinner);
+  const beaten = results.rows.filter((r) => !r.isWinner);
   const most = Math.max(1, winners[0]?.votes ?? 1);
+  // Every percentage on this page is a share of the ballots, which is the
+  // only base that means anything here: a man was either named on a ballot
+  // or he was not, and each ballot carried the same number of names.
+  const ballots = Math.max(1, results.totalBallots);
+  const share = (votes: number) => `${((votes / ballots) * 100).toFixed(1)}%`;
 
   ctx.y -= 30;
   text(ctx, a.resultsHeading, { size: 22, font: bold });
@@ -515,7 +539,9 @@ export async function resultsPdf(
   const NUM = MARGIN;
   const NAME = MARGIN + 24;
   const BAR = MARGIN + 300;
-  const BAR_W = RIGHT - 40 - BAR;
+  // Stops short of the votes column, so the longest bar does not run under
+  // its own number.
+  const BAR_W = RIGHT - 104 - BAR;
 
   for (const row of winners) {
     room(ctx, 26);
@@ -534,7 +560,8 @@ export async function resultsPdf(
       height: 7,
       color: BRAND,
     });
-    rightText(ctx, String(row.votes), RIGHT, { size: 11, font: bold });
+    rightText(ctx, String(row.votes), RIGHT - 46, { size: 11, font: bold });
+    rightText(ctx, share(row.votes), RIGHT, { size: 9.5, color: SOFT });
     ctx.y -= 21;
   }
 
@@ -549,6 +576,67 @@ export async function resultsPdf(
     ctx.y -= 14;
   }
 
+  // --- what the numbers say -----------------------------------------------
+  //
+  // Every line here is arithmetic on the counts above. Nothing is inferred
+  // about why anybody voted as they did, because the ballot box holds no
+  // such thing and never will.
+  newPage(ctx);
+  text(ctx, a.analysisHeading, { size: 16, font: bold });
+  ctx.y -= 16;
+  text(ctx, a.analysisHeadingHi, { size: 10, color: SOFT });
+  ctx.y -= 8;
+  ctx.page.drawLine({
+    start: { x: MARGIN, y: ctx.y }, end: { x: RIGHT, y: ctx.y },
+    thickness: 2, color: BRAND,
+  });
+
+  const cut = winners[winners.length - 1];
+  const firstOut = beaten[0];
+  const margin = cut && firstOut ? cut.votes - firstOut.votes : 0;
+  const electedVotes = winners.reduce((n, r) => n + r.votes, 0);
+  const sorted = results.rows.map((r) => r.votes).sort((x, y) => x - y);
+  const median = sorted.length === 0 ? 0
+    : sorted.length % 2 === 1 ? sorted[(sorted.length - 1) / 2]
+      : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2;
+  const tiedAtTop = winners.filter(
+    (r, i) => winners.some((o, j) => i !== j && o.votes === r.votes),
+  );
+
+  const paragraphs: [string, string][] = [
+    [a.analysisTurnout(results.totalMarkedVoted, results.totalVoters,
+      ((results.totalMarkedVoted / Math.max(1, results.totalVoters)) * 100).toFixed(1)),
+     a.analysisTurnoutHi],
+    [a.analysisTop(winners[0]?.name ?? "", winners[0]?.votes ?? 0,
+      share(winners[0]?.votes ?? 0)), a.analysisTopHi],
+    [a.analysisCut(cut?.votes ?? 0, share(cut?.votes ?? 0), firstOut?.votes ?? 0, margin),
+     a.analysisCutHi],
+    [a.analysisSplit(winners.length, electedVotes, results.totalVotesCast,
+      ((electedVotes / Math.max(1, results.totalVotesCast)) * 100).toFixed(1),
+      beaten.length), a.analysisSplitHi],
+    [a.analysisSpread(results.rows[0]?.votes ?? 0,
+      results.rows[results.rows.length - 1]?.votes ?? 0, median,
+      results.rows.length), a.analysisSpreadHi],
+  ];
+  if (tiedAtTop.length > 0) {
+    paragraphs.push([a.analysisTies(tiedAtTop.map((r) => `${r.name} (${r.votes})`).join(", ")),
+      a.analysisTiesHi]);
+  }
+
+  ctx.y -= 22;
+  for (const [line, hindi] of paragraphs) {
+    room(ctx, 46);
+    for (const part of wrap(line, ctx.regular, 11, RIGHT - MARGIN)) {
+      text(ctx, part, { size: 11 });
+      ctx.y -= 15;
+    }
+    for (const part of wrap(hindi, ctx.regular, 9.5, RIGHT - MARGIN)) {
+      text(ctx, part, { size: 9.5, color: SOFT });
+      ctx.y -= 13;
+    }
+    ctx.y -= 10;
+  }
+
   // --- the whole standing -------------------------------------------------
   newPage(ctx);
   text(ctx, a.resultsStanding, { size: 14, font: bold });
@@ -559,7 +647,8 @@ export async function resultsPdf(
     ctx.y -= 20;
     text(ctx, a.resultsColRank, { size: 8.5, font: bold, color: SOFT, x: MARGIN });
     text(ctx, a.namesColName, { size: 8.5, font: bold, color: SOFT, x: MARGIN + 34 });
-    rightText(ctx, a.resultsColVotes, RIGHT, { size: 8.5, font: bold, color: SOFT });
+    rightText(ctx, a.resultsColVotes, RIGHT - 46, { size: 8.5, font: bold, color: SOFT });
+    rightText(ctx, a.resultsColShare, RIGHT, { size: 8.5, font: bold, color: SOFT });
     ctx.y -= 6;
     ctx.page.drawLine({
       start: { x: MARGIN, y: ctx.y }, end: { x: RIGHT, y: ctx.y },
@@ -584,12 +673,13 @@ export async function resultsPdf(
     });
     if (row.isWinner) {
       ctx.page.drawText(a.resultsElectedMark, {
-        x: RIGHT - 74, y: ctx.y, size: 8, font: bold, color: BRAND,
+        x: RIGHT - 130, y: ctx.y, size: 8, font: bold, color: BRAND,
       });
     }
-    rightText(ctx, String(row.votes), RIGHT, {
+    rightText(ctx, String(row.votes), RIGHT - 46, {
       size: 9.5, font: row.isWinner ? bold : regular,
     });
+    rightText(ctx, share(row.votes), RIGHT, { size: 9, color: SOFT });
     ctx.y -= 14;
   }
 
