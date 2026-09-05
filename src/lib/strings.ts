@@ -801,6 +801,32 @@ export const strings = {
       "Everybody here is on the voter list and has not voted yet. Please call them. No voting codes are on this page.",
     notVotedPrivacyHi:
       "Yeh sab log voter list mein hain aur inhone abhi tak vote nahi diya. Inhe call kijiye. Is page par koi code nahi hai.",
+    resultsHeading: "Result of the election",
+    resultsHeadingHi: "Chunav ka nateeja",
+    resultsDeclared: (when: string) => `Counted and declared on ${when}`,
+    resultsElected: (n: number) => `The ${n} elected`,
+    resultsElectedMark: "ELECTED",
+    resultsStanding: "The full standing",
+    resultsStandingHi: "Sabhi ummeedwaron ke vote",
+    resultsColRank: "RANK",
+    resultsColVotes: "VOTES",
+    resultsTie: (place: number, votes: number) =>
+      `A tie at place ${place}, on ${votes} votes each.`,
+    resultsChecks: "The count, checked",
+    resultsChecksHi: "Ginti ki jaanch",
+    resultsBallots: "Ballots in the box",
+    resultsOnRegister: "Voters on the register",
+    resultsMarkedVoted: "Voters marked as having voted",
+    resultsVotesCast: "Individual votes counted",
+    resultsSeats: "Seats to fill",
+    resultsPerBallot: "Seats times ballots, which the votes must equal",
+    resultsPrivacy:
+      "Counted from the ballot box, which holds only the choices and a date. No ballot can be traced to the person who cast it.",
+    resultsPrivacyHi:
+      "Yeh ballot box se gina gaya hai, jismein sirf choices aur ek date hai. Kisi bhi ballot ko dene wale tak nahi pahunchaya ja sakta.",
+    resultsDownload: "Download the result",
+    resultsDownloadHelp:
+      "The elected, the full standing and the arithmetic that proves the count. Safe to share with the whole society.",
     timelineHeading: "How the voting went",
     timelineHeadingHi: "Voting kaise chali, ghante ke hisaab se",
     timelineCount: (voted: number, roster: number) => `${voted} of ${roster} voted`,

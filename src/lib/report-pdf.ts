@@ -9,7 +9,7 @@ import {
   type PDFPage,
   type PDFFont,
 } from "pdf-lib";
-import type { Report, ReportLine, VotingTimeline } from "./admin-data";
+import type { Report, ReportLine, VotingTimeline, Results } from "./admin-data";
 import { strings } from "./strings";
 
 /**
@@ -467,6 +467,168 @@ export async function bothListsPdf(
  * ballot box holds no time at all, so no line here can be lined up against
  * a vote.
  */
+/**
+ * The result of the election, as a document the society can put its name to.
+ *
+ * The elected are given the first page on their own, because that is what
+ * the village opens the file for. The whole standing follows, every man and
+ * his count, so nobody has to take the top of the list on trust. The
+ * arithmetic that proves the count is at the end.
+ */
+export async function resultsPdf(
+  results: Results,
+  when: string,
+): Promise<Uint8Array> {
+  const a = strings.admin;
+  const doc = await PDFDocument.create();
+  const regular = await doc.embedFont(StandardFonts.Helvetica);
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const ctx: Ctx = { doc, page: doc.addPage(A4), y: A4[1] - MARGIN, regular, bold };
+  const RIGHT = A4[0] - MARGIN;
+
+  doc.setTitle(a.resultsHeading);
+  doc.setAuthor(strings.common.orgName);
+  await letterhead(ctx);
+
+  const winners = results.rows.filter((r) => r.isWinner);
+  const most = Math.max(1, winners[0]?.votes ?? 1);
+
+  ctx.y -= 30;
+  text(ctx, a.resultsHeading, { size: 22, font: bold });
+  ctx.y -= 18;
+  text(ctx, a.resultsHeadingHi, { size: 12, color: SOFT });
+  ctx.y -= 16;
+  text(ctx, a.resultsDeclared(when), { size: 9, color: SOFT });
+
+  ctx.y -= 24;
+  text(ctx, a.resultsElected(winners.length), { size: 13, font: bold, color: BRAND });
+  ctx.y -= 6;
+  ctx.page.drawLine({
+    start: { x: MARGIN, y: ctx.y },
+    end: { x: RIGHT, y: ctx.y },
+    thickness: 2,
+    color: BRAND,
+  });
+  ctx.y -= 20;
+
+  // --- the elected --------------------------------------------------------
+  const NUM = MARGIN;
+  const NAME = MARGIN + 24;
+  const BAR = MARGIN + 300;
+  const BAR_W = RIGHT - 40 - BAR;
+
+  for (const row of winners) {
+    room(ctx, 26);
+    ctx.page.drawText(String(row.rank), {
+      x: NUM, y: ctx.y, size: 10, font: bold, color: SOFT,
+    });
+    ctx.page.drawText(row.name.slice(0, 46), {
+      x: NAME, y: ctx.y, size: 11, font: bold, color: INK,
+    });
+    ctx.page.drawRectangle({
+      x: BAR, y: ctx.y - 1, width: BAR_W, height: 7, color: TRACK,
+    });
+    ctx.page.drawRectangle({
+      x: BAR, y: ctx.y - 1,
+      width: Math.max(2, (row.votes / most) * BAR_W),
+      height: 7,
+      color: BRAND,
+    });
+    rightText(ctx, String(row.votes), RIGHT, { size: 11, font: bold });
+    ctx.y -= 21;
+  }
+
+  if (results.tie) {
+    room(ctx, 30);
+    ctx.y -= 8;
+    text(ctx, a.resultsTie(results.tie.place, results.tie.votes), {
+      size: 10, font: bold, color: rgb(0.66, 0.42, 0.03),
+    });
+    ctx.y -= 14;
+    text(ctx, results.tie.names.join(", ").slice(0, 110), { size: 9, color: SOFT });
+    ctx.y -= 14;
+  }
+
+  // --- the whole standing -------------------------------------------------
+  newPage(ctx);
+  text(ctx, a.resultsStanding, { size: 14, font: bold });
+  ctx.y -= 16;
+  text(ctx, a.resultsStandingHi, { size: 10, color: SOFT });
+
+  const heading = () => {
+    ctx.y -= 20;
+    text(ctx, a.resultsColRank, { size: 8.5, font: bold, color: SOFT, x: MARGIN });
+    text(ctx, a.namesColName, { size: 8.5, font: bold, color: SOFT, x: MARGIN + 34 });
+    rightText(ctx, a.resultsColVotes, RIGHT, { size: 8.5, font: bold, color: SOFT });
+    ctx.y -= 6;
+    ctx.page.drawLine({
+      start: { x: MARGIN, y: ctx.y }, end: { x: RIGHT, y: ctx.y },
+      thickness: 1, color: RULE,
+    });
+    ctx.y -= 13;
+  };
+  heading();
+
+  for (const row of results.rows) {
+    if (ctx.y < MARGIN + 54) {
+      newPage(ctx);
+      heading();
+    }
+    ctx.page.drawText(String(row.rank), {
+      x: MARGIN, y: ctx.y, size: 9, font: regular, color: SOFT,
+    });
+    ctx.page.drawText(row.name.slice(0, 52), {
+      x: MARGIN + 34, y: ctx.y, size: 9.5,
+      font: row.isWinner ? bold : regular,
+      color: row.isWinner ? INK : rgb(0.3, 0.33, 0.31),
+    });
+    if (row.isWinner) {
+      ctx.page.drawText(a.resultsElectedMark, {
+        x: RIGHT - 74, y: ctx.y, size: 8, font: bold, color: BRAND,
+      });
+    }
+    rightText(ctx, String(row.votes), RIGHT, {
+      size: 9.5, font: row.isWinner ? bold : regular,
+    });
+    ctx.y -= 14;
+  }
+
+  // --- the arithmetic -----------------------------------------------------
+  room(ctx, 130);
+  ctx.y -= 20;
+  text(ctx, a.resultsChecks, { size: 12, font: bold });
+  ctx.y -= 16;
+  text(ctx, a.resultsChecksHi, { size: 9, color: SOFT });
+  ctx.y -= 18;
+
+  const checks: [string, string][] = [
+    [a.resultsBallots, String(results.totalBallots)],
+    [a.resultsOnRegister, String(results.totalVoters)],
+    [a.resultsMarkedVoted, String(results.totalMarkedVoted)],
+    [a.resultsVotesCast, String(results.totalVotesCast)],
+    [a.resultsSeats, String(results.seats)],
+    [a.resultsPerBallot, `${results.seats} x ${results.totalBallots} = ${results.seats * results.totalBallots}`],
+  ];
+  for (const [label, value] of checks) {
+    room(ctx, 16);
+    text(ctx, label, { size: 10, color: SOFT });
+    rightText(ctx, value, RIGHT, { size: 10, font: bold });
+    ctx.y -= 15;
+  }
+
+  ctx.y = MARGIN + 30;
+  ctx.page.drawLine({
+    start: { x: MARGIN, y: ctx.y }, end: { x: RIGHT, y: ctx.y },
+    thickness: 1, color: RULE,
+  });
+  ctx.y -= 14;
+  text(ctx, a.resultsPrivacy, { size: 9, color: SOFT });
+  ctx.y -= 12;
+  text(ctx, a.resultsPrivacyHi, { size: 9, color: SOFT });
+
+  return doc.save();
+}
+
 export async function timelinePdf(
   timeline: VotingTimeline,
   when: string,

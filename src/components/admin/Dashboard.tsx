@@ -933,6 +933,20 @@ function RosterPanel({ data }: { data: DashboardData }) {
             </p>
           </div>
 
+          {data.votingEnded ? (
+            <div>
+              <a
+                href="/api/admin/results-pdf"
+                className="inline-flex min-h-12 items-center rounded-xl border-2 border-brand bg-brand px-4 py-2 text-base font-bold text-white"
+              >
+                {strings.admin.resultsDownload}
+              </a>
+              <p className="mt-2 text-sm text-ink-soft">
+                {strings.admin.resultsDownloadHelp}
+              </p>
+            </div>
+          ) : null}
+
           {data.hasStarted ? (
             <div>
               <a
